@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
@@ -90,6 +89,7 @@ namespace NuGet.CatalogReader
                     await stream.CopyToAsync(outputStream, 8192, token);
                 }
 
+                FileUtility.Delete(outputFile.FullName);
                 FileUtility.Move(tmp.FullName, outputFile.FullName);
 
                 File.SetCreationTimeUtc(outputFile.FullName, created.UtcDateTime);

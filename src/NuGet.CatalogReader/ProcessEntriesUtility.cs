@@ -10,9 +10,11 @@ namespace NuGet.CatalogReader
 {
     public static class ProcessEntriesUtility
     {
-        public static Task<IReadOnlyList<FileInfo>> DownloadNuspecsAsync(string outputDirectory, DownloadMode mode, int maxConcurrentDownloads, CancellationToken token, params CatalogEntry[] entries)
+        public static Task<IReadOnlyList<FileInfo>> DownloadNuspecsAsync(string outputDirectory, DownloadMode mode, int maxConcurrentDownloads, CancellationToken token, IEnumerable<CatalogEntry> entries)
         {
-            if (entries.Distinct().Count() != entries.Length)
+            var entriesArray = entries.ToArray();
+
+            if (entriesArray.Distinct().Count() != entriesArray.Length)
             {
                 throw new InvalidOperationException("Duplicate entries detected. Entries must be unique by id/version.");
             }
@@ -21,12 +23,14 @@ namespace NuGet.CatalogReader
                 apply: e => e.DownloadNuspecAsync(outputDirectory, mode, token),
                 maxThreads: maxConcurrentDownloads,
                 token: token,
-                entries: entries);
+                entries: entriesArray);
         }
 
-        public static Task<IReadOnlyList<FileInfo>>  DownloadNupkgsAsync(string outputDirectory, DownloadMode mode, int maxConcurrentDownloads, CancellationToken token, params CatalogEntry[] entries)
+        public static Task<IReadOnlyList<FileInfo>>  DownloadNupkgsAsync(string outputDirectory, DownloadMode mode, int maxConcurrentDownloads, CancellationToken token, IEnumerable<CatalogEntry> entries)
         {
-            if (entries.Distinct().Count() != entries.Length)
+            var entriesArray = entries.ToArray();
+
+            if (entries.Distinct().Count() != entriesArray.Length)
             {
                 throw new InvalidOperationException("Duplicate entries detected. Entries must be unique by id/version.");
             }
@@ -35,7 +39,7 @@ namespace NuGet.CatalogReader
                 apply: e => e.DownloadNupkgAsync(outputDirectory, mode, token),
                 maxThreads: maxConcurrentDownloads,
                 token: token,
-                entries: entries);
+                entries: entriesArray);
         }
 
         /// <summary>
@@ -56,15 +60,17 @@ namespace NuGet.CatalogReader
         /// <typeparam name="T"></typeparam>
         /// <param name="apply">Transform or action to apply to each catalog entry.</param>
         /// <param name="maxThreads">Max threads</param>
-        public static async Task<IReadOnlyList<T>> RunAsync<T>(Func<CatalogEntry, Task<T>> apply, int maxThreads, CancellationToken token, params CatalogEntry[] entries)
+        public static async Task<IReadOnlyList<T>> RunAsync<T>(Func<CatalogEntry, Task<T>> apply, int maxThreads, CancellationToken token, IEnumerable<CatalogEntry> entries)
         {
+            var entriesArray = entries.ToArray();
+
             maxThreads = Math.Min(1, maxThreads);
 
-            var files = new List<T>(entries.Length);
+            var files = new List<T>(entriesArray.Length);
             var tasks = new List<Task<T>>(maxThreads);
 
             // Download with throttling
-            foreach (var entry in entries)
+            foreach (var entry in entriesArray)
             {
                 if (tasks.Count == maxThreads)
                 {

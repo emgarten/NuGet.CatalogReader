@@ -4,12 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using Newtonsoft.Json.Linq;
-using NuGet.Common;
 using NuGet.Packaging;
 using NuGet.Protocol;
-using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 
 namespace NuGet.CatalogReader
@@ -115,13 +112,18 @@ namespace NuGet.CatalogReader
             return _getJson(Uri, token);
         }
 
-        
+
         public Uri NupkgUri
         {
             get
             {
                 return NuGetUriUtility.GetNupkgUri(_serviceIndex.GetPackageBaseAddressUri(), Id, Version);
             }
+        }
+
+        public async Task<Stream> GetNupkgAsync()
+        {
+            return await GetNupkgAsync(CancellationToken.None);
         }
 
         public async Task<Stream> GetNupkgAsync(CancellationToken token)
@@ -154,9 +156,14 @@ namespace NuGet.CatalogReader
             }
         }
 
+        public Task<NuspecReader> GetNuspecAsync()
+        {
+            return GetNuspecAsync(CancellationToken.None);
+        }
+
         public async Task<NuspecReader> GetNuspecAsync(CancellationToken token)
         {
-            using (var stream = await _getStream(NupkgUri, token))
+            using (var stream = await _getStream(NuspecUri, token))
             {
                 return new NuspecReader(stream);
             }
@@ -177,7 +184,7 @@ namespace NuGet.CatalogReader
 
                 return path;
             }
-        }        
+        }
 
         public Uri PackageBaseAddressIndexUri
         {
@@ -185,6 +192,11 @@ namespace NuGet.CatalogReader
             {
                 return NuGetUriUtility.GetPackageBaseAddressIndexUri(_serviceIndex.GetPackageBaseAddressUri(), Id);
             }
+        }
+
+        public Task<JObject> GetPackageBaseAddressIndexUriAsync()
+        {
+            return GetPackageBaseAddressIndexUriAsync(CancellationToken.None);
         }
 
         public async Task<JObject> GetPackageBaseAddressIndexUriAsync(CancellationToken token)
@@ -196,8 +208,13 @@ namespace NuGet.CatalogReader
         {
             get
             {
-                return NuGetUriUtility.GetRegistrationIndexUri(_serviceIndex.GetPackageBaseAddressUri(), Id);
+                return NuGetUriUtility.GetRegistrationIndexUri(_serviceIndex.GetRegistrationBaseUri(), Id);
             }
+        }
+
+        public async Task<JObject> GetRegistrationIndexUriAsync()
+        {
+            return await GetRegistrationIndexUriAsync(CancellationToken.None);
         }
 
         public async Task<JObject> GetRegistrationIndexUriAsync(CancellationToken token)
@@ -209,13 +226,23 @@ namespace NuGet.CatalogReader
         {
             get
             {
-                return NuGetUriUtility.GetPackageRegistrationUri(_serviceIndex.GetPackageBaseAddressUri(), Id, Version);
+                return NuGetUriUtility.GetPackageRegistrationUri(_serviceIndex.GetRegistrationBaseUri(), Id, Version);
             }
+        }
+
+        public Task<JObject> GetPackageRegistrationUriAsync()
+        {
+            return GetPackageRegistrationUriAsync(CancellationToken.None);
         }
 
         public async Task<JObject> GetPackageRegistrationUriAsync(CancellationToken token)
         {
             return await _getJson(PackageRegistrationUri, token);
+        }
+
+        public Task<bool> IsListedAsync()
+        {
+            return IsListedAsync(CancellationToken.None);
         }
 
         public async Task<bool> IsListedAsync(CancellationToken token)

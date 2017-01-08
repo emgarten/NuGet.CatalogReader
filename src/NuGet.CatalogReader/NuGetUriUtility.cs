@@ -13,7 +13,7 @@ namespace NuGet.CatalogReader
             var versionFixed = version.ToNormalizedString().ToLowerInvariant();
             var baseUrl = EnsureNoTrailingSlash(registrationBaseUri);
 
-            return new Uri($"{baseUrl}/{idFixed}/{versionFixed}/index.json");
+            return new Uri($"{baseUrl}/{idFixed}/{versionFixed}.json");
         }
 
         public static Uri GetRegistrationIndexUri(Uri registrationBaseUri, string id)
@@ -52,7 +52,7 @@ namespace NuGet.CatalogReader
 
         private static string EnsureNoTrailingSlash(Uri uri)
         {
-            return uri.AbsoluteUri.TrimEnd('/') + "/";
+            return uri.AbsoluteUri.TrimEnd('/');
         }
     }
 }

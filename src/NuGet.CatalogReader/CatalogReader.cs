@@ -6,10 +6,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NuGet.Common;
-using NuGet.Configuration;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
@@ -26,18 +24,39 @@ namespace NuGet.CatalogReader
         private readonly ILogger _log;
         private readonly HttpSourceCacheContext _cacheContext;
         private readonly SourceCacheContext _sourceCacheContext;
+        private ServiceIndexResourceV3 _serviceIndex;
 
         /// <summary>
         /// Max threads. Set to 1 to disable concurrency.
         /// </summary>
-        public int MaxThreads { get; set; } = 32;
+        public int MaxThreads { get; set; } = 16;
+
+        /// <summary>
+        /// Http cache location
+        /// </summary>
+        public string HttpCacheFolder
+        {
+            get
+            {
+                return _cacheContext.RootTempFolder;
+            }
+        }
 
         /// <summary>
         /// CatalogReader
         /// </summary>
         /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
         public CatalogReader(Uri indexUri)
-            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri), cacheContext: null, log: null)
+            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri), cacheContext: null, cacheTimeout: TimeSpan.Zero, log: null)
+        {
+        }
+
+        /// <summary>
+        /// CatalogReader
+        /// </summary>
+        /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
+        public CatalogReader(Uri indexUri, TimeSpan cacheTimeout)
+            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri), cacheContext: null, cacheTimeout: cacheTimeout, log: null)
         {
         }
 
@@ -46,7 +65,16 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
         public CatalogReader(Uri indexUri, ILogger log)
-            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri), cacheContext: null, log: log)
+            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri), cacheContext: null, cacheTimeout: TimeSpan.Zero, log: log)
+        {
+        }
+
+        /// <summary>
+        /// CatalogReader
+        /// </summary>
+        /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
+        public CatalogReader(Uri indexUri, TimeSpan cacheTimeout, ILogger log)
+            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri), cacheContext: null, cacheTimeout: cacheTimeout, log: log)
         {
         }
 
@@ -56,7 +84,11 @@ namespace NuGet.CatalogReader
         /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
         /// <param name="messageHandler">HTTP message handler.</param>
         public CatalogReader(Uri indexUri, HttpMessageHandler messageHandler)
-            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri, messageHandler, new HttpClientHandler()), cacheContext: null, log: null)
+            : this(indexUri,
+                  CatalogReaderUtility.CreateSource(indexUri, messageHandler, new HttpClientHandler()),
+                  cacheContext: null,
+                  cacheTimeout: TimeSpan.Zero,
+                  log: null)
         {
         }
 
@@ -66,7 +98,11 @@ namespace NuGet.CatalogReader
         /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
         /// <param name="messageHandler">HTTP message handler.</param>
         public CatalogReader(Uri indexUri, HttpMessageHandler messageHandler, ILogger log)
-            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri, messageHandler, new HttpClientHandler()), cacheContext: null, log: log)
+            : this(indexUri,
+                  CatalogReaderUtility.CreateSource(indexUri, messageHandler, new HttpClientHandler()),
+                  cacheContext: null,
+                  cacheTimeout: TimeSpan.Zero,
+                  log: log)
         {
         }
 
@@ -75,18 +111,33 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
         /// <param name="httpSource">Custom HttpSource.</param>
-        public CatalogReader(Uri indexUri, HttpSource httpSource, HttpSourceCacheContext cacheContext, ILogger log)
+        public CatalogReader(Uri indexUri, HttpSource httpSource, SourceCacheContext cacheContext, TimeSpan cacheTimeout, ILogger log)
         {
             _indexUri = indexUri ?? throw new ArgumentNullException(nameof(indexUri));
             _httpSource = httpSource ?? throw new ArgumentNullException(nameof(httpSource));
             _log = log ?? NullLogger.Instance;
-            _cacheContext = cacheContext;
+            _sourceCacheContext = cacheContext ?? new SourceCacheContext();
 
-            if (_cacheContext == null)
+            if (cacheTimeout == null)
             {
-                // Disable caching
-                _cacheContext = new HttpSourceCacheContext(new SourceCacheContext(), TimeSpan.Zero);
+                cacheTimeout = TimeSpan.Zero;
             }
+
+            _cacheContext = new HttpSourceCacheContext(_sourceCacheContext, cacheTimeout);
+
+            if (_sourceCacheContext == null)
+            {
+                _cacheContext = new HttpSourceCacheContext(new SourceCacheContext(), cacheTimeout);
+            }
+        }
+
+        /// <summary>
+        /// Returns only the latest id/version combination for each package.
+        /// Older edits and deleted packages are ignored.
+        /// </summary>
+        public Task<IReadOnlyList<CatalogEntry>> GetFlattenedEntriesAsync()
+        {
+            return GetFlattenedEntriesAsync(CancellationToken.None);
         }
 
         /// <summary>
@@ -96,6 +147,17 @@ namespace NuGet.CatalogReader
         public Task<IReadOnlyList<CatalogEntry>> GetFlattenedEntriesAsync(CancellationToken token)
         {
             return GetFlattenedEntriesAsync(DateTimeOffset.MinValue, DateTimeOffset.UtcNow, token);
+        }
+
+        /// <summary>
+        /// Returns only the latest id/version combination for each package. Older edits are ignored.
+        /// </summary>
+        /// <param name="start">End time of the previous window. Commits exactly matching the start time will NOT be included. This is designed to take the cursor time.</param>
+        /// <param name="end">Maximum time to include. Exact matches will be included.</param>
+        /// <returns>Entries within the start and end time. Start time is NOT included.</returns>
+        public Task<IReadOnlyList<CatalogEntry>> GetFlattenedEntriesAsync(DateTimeOffset start, DateTimeOffset end)
+        {
+            return GetFlattenedEntriesAsync(start, end, CancellationToken.None);
         }
 
         /// <summary>
@@ -129,6 +191,15 @@ namespace NuGet.CatalogReader
             }
 
             return set.OrderByDescending(e => e.CommitTimeStamp).ToList();
+        }
+
+        /// <summary>
+        /// Returns an index of all non-deleted packages in the catalog.
+        /// Id -> Version set.
+        /// </summary>
+        public Task<IDictionary<string, ISet<NuGetVersion>>> GetPackageSetAsync()
+        {
+            return GetPackageSetAsync(CancellationToken.None);
         }
 
         /// <summary>
@@ -169,6 +240,14 @@ namespace NuGet.CatalogReader
         /// <summary>
         /// Read all catalog entries.
         /// </summary>
+        public Task<IReadOnlyList<CatalogEntry>> GetEntriesAsync()
+        {
+            return GetEntriesAsync(CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Read all catalog entries.
+        /// </summary>
         public Task<IReadOnlyList<CatalogEntry>> GetEntriesAsync(CancellationToken token)
         {
             return GetEntriesAsync(DateTimeOffset.MinValue, DateTimeOffset.UtcNow, token);
@@ -183,7 +262,7 @@ namespace NuGet.CatalogReader
         /// <returns>Entries within the start and end time. Start time is NOT included.</returns>
         public async Task<IReadOnlyList<CatalogEntry>> GetEntriesAsync(DateTimeOffset start, DateTimeOffset end, CancellationToken token)
         {
-            var index = await GetCatalogIndexAsync(_indexUri, token);
+            var index = await GetCatalogIndexAsync(token);
 
             var pages = new List<Tuple<DateTimeOffset, Uri>>();
 
@@ -251,7 +330,7 @@ namespace NuGet.CatalogReader
                     entries.AddRange(await CompleteTaskAsync(tasks));
                 }
 
-                tasks.Add(_httpSource.GetJObjectAsync(uri, _log, token));
+                tasks.Add(_httpSource.GetJObjectAsync(uri, _cacheContext, _log, token));
             }
 
             while (tasks.Count > 0)
@@ -291,7 +370,9 @@ namespace NuGet.CatalogReader
                         DateTime.Parse(item["commitTimeStamp"].ToString()),
                         item["nuget:id"].ToString(),
                         NuGetVersion.Parse(item["nuget:version"].ToString()),
-                        (uri, token) => GetJson(uri, token));
+                        _serviceIndex,
+                        (uri, token) => GetJson(uri, token),
+                        (uri, token) => GetStream(uri, token));
 
                 entries.Add(entry);
             }
@@ -304,39 +385,40 @@ namespace NuGet.CatalogReader
             return _httpSource.GetJObjectAsync(uri, _cacheContext, _log, token);
         }
 
-        private async Task<JObject> GetCatalogIndexAsync(Uri uri, CancellationToken token)
+        private Task<Stream> GetStream(Uri uri, CancellationToken token)
         {
-            var index = await _httpSource.GetJObjectAsync(_indexUri, _log, token);
+            return _httpSource.GetStreamAsync(uri, _cacheContext, _log, token);
+        }
 
-            var resources = (index["resources"] as JArray);
-
-            if (resources != null)
+        /// <summary>
+        /// Ensure index.json has been loaded.
+        /// </summary>
+        private async Task EnsureServiceIndexAsync(Uri uri, CancellationToken token)
+        {
+            if (_serviceIndex == null)
             {
-                // This is the service index page
-                var catalogEntry = resources.FirstOrDefault(e => "Catalog/3.0.0".Equals(e["@type"].ToObject<string>(), StringComparison.OrdinalIgnoreCase));
+                var index = await _httpSource.GetJObjectAsync(_indexUri, _cacheContext, _log, token);
+                var resources = (index["resources"] as JArray);
 
-                if (catalogEntry == null)
+                if (resources == null)
                 {
-                    throw new InvalidOperationException($"{uri.AbsoluteUri} does not contain an entry for Catalog/3.0.0.");
+                    throw new InvalidOperationException($"{uri.AbsoluteUri} does not contain a 'resources' property. Use the root service index.json for the nuget v3 feed.");
                 }
-                else
-                {
-                    // Follow the catalog entry
-                    index = await _httpSource.GetJObjectAsync(
-                        new Uri(catalogEntry["@id"].ToObject<string>()),
-                        _log,
-                        token);
-                }
+
+                _serviceIndex = new ServiceIndexResourceV3(index, DateTime.UtcNow);
             }
+        }
 
-            var types = index["@type"] as JArray;
+        /// <summary>
+        /// Return catalog/index.json
+        /// </summary>
+        private async Task<JObject> GetCatalogIndexAsync(CancellationToken token)
+        {
+            await EnsureServiceIndexAsync(_indexUri, token);
 
-            if (types?.Select(e => e.ToObject<string>()).Contains("CatalogRoot", StringComparer.OrdinalIgnoreCase) != true)
-            {
-                throw new InvalidOperationException($"{uri.AbsoluteUri} does not contain @type CatalogRoot.");
-            }
+            var catalogRootUri = _serviceIndex.GetCatalogServiceUri();
 
-            return index;
+            return await _httpSource.GetJObjectAsync(catalogRootUri, _cacheContext, _log, token);
         }
 
         public void Dispose()

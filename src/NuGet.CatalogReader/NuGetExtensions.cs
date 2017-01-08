@@ -16,16 +16,37 @@ namespace NuGet.CatalogReader
     {
         internal static async Task<JObject> GetJObjectAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
         {
-            var cacheKey = uri.AbsolutePath.Replace("/", "_").Replace("\\", "_").Replace(":", "_");
+            var cacheKey = GetHashKey(uri);
 
-            var request = new HttpSourceCachedRequest(uri.AbsoluteUri, cacheKey, cacheContext);
-            request.EnsureValidContents = stream => CatalogReaderUtility.LoadJson(stream);
-            request.IgnoreNotFounds = false;
+            var request = new HttpSourceCachedRequest(uri.AbsoluteUri, cacheKey, cacheContext)
+            {
+                EnsureValidContents = stream => CatalogReaderUtility.LoadJson(stream),
+                IgnoreNotFounds = false
+            };
 
             using (var result = await source.GetAsync(request, log, token))
             {
                 return CatalogReaderUtility.LoadJson(result.Stream);
             }
+        }
+
+        internal static async Task<Stream> GetStreamAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
+        {
+            var cacheKey = GetHashKey(uri);
+
+            var request = new HttpSourceCachedRequest(uri.AbsoluteUri, cacheKey, cacheContext)
+            {
+                IgnoreNotFounds = false
+            };
+
+            var result = await source.GetAsync(request, log, token);
+
+            return result.Stream;
+        }
+
+        private static string GetHashKey(Uri uri)
+        {
+            return uri.AbsolutePath.Replace("/", "_").Replace("\\", "_").Replace(":", "_");
         }
 
         private static readonly string[] RegistrationsBaseUrl = { "RegistrationsBaseUrl/3.4.0", "RegistrationsBaseUrl/3.0.0-beta" };
