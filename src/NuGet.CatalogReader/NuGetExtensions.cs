@@ -51,7 +51,7 @@ namespace NuGet.CatalogReader
 
         private static readonly string[] RegistrationsBaseUrl = { "RegistrationsBaseUrl/3.4.0", "RegistrationsBaseUrl/3.0.0-beta" };
         private static readonly string[] PackageBaseAddressUrl = { "PackageBaseAddress/3.0.0" };
-        private static readonly string[] CatalogServiceUrl = { "Catalog/3.0.0" };
+        private static readonly string[] CatalogServiceUrl = { "Catalog/3.0.0", "http://schema.emgarten.com/sleet#Catalog/1.0.0" };
 
         internal static Uri GetCatalogServiceUri(this ServiceIndexResourceV3 serviceIndex)
         {
