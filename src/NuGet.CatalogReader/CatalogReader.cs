@@ -114,9 +114,15 @@ namespace NuGet.CatalogReader
         public CatalogReader(Uri indexUri, HttpSource httpSource, SourceCacheContext cacheContext, TimeSpan cacheTimeout, ILogger log)
         {
             _indexUri = indexUri ?? throw new ArgumentNullException(nameof(indexUri));
-            _httpSource = httpSource ?? throw new ArgumentNullException(nameof(httpSource));
             _log = log ?? NullLogger.Instance;
             _sourceCacheContext = cacheContext ?? new SourceCacheContext();
+
+            _httpSource = httpSource;
+
+            if (_httpSource == null)
+            {
+                _httpSource = CatalogReaderUtility.CreateSource(indexUri);
+            }
 
             if (cacheTimeout == null)
             {

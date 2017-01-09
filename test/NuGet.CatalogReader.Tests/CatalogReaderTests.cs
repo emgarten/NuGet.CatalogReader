@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -238,21 +239,22 @@ namespace NuGet.CatalogReader.Tests
 
         private static async Task CreateCatalogAsync(string root, string feedRoot, string nupkgFolder, Uri baseUri, ILogger log)
         {
-            var sleetConfig = CreateSleetConfig(root, feedRoot, baseUri);
-
-            var args = new string[] { "init", "-c", sleetConfig, "-s", "feed", };
-
-            var exitCode = await Sleet.Program.MainCore(args, log);
-
-            Assert.Equal(0, exitCode);
-
-            if (Directory.GetFiles(nupkgFolder).Any())
+            using (var cache = new LocalCache())
             {
-                args = new string[] { "push", nupkgFolder, "-c", sleetConfig, "-s", "feed", };
+                var sleetConfig = CreateSleetConfig(root, feedRoot, baseUri);
+                var settings = LocalSettings.Load(sleetConfig);
+                var fileSystem = FileSystemFactory.CreateFileSystem(settings, cache, "feed");
 
-                exitCode = await Sleet.Program.MainCore(args, log);
+                var success = await InitCommand.RunAsync(settings, fileSystem, log);
 
-                Assert.Equal(0, exitCode);
+                Assert.True(success);
+
+                if (Directory.GetFiles(nupkgFolder).Any())
+                {
+                    success = await PushCommand.RunAsync(settings, fileSystem, new List<string>() { nupkgFolder }, false, log);
+
+                    Assert.True(success);
+                }
             }
         }
 
@@ -262,11 +264,15 @@ namespace NuGet.CatalogReader.Tests
 
             if (Directory.GetFiles(nupkgFolder).Any())
             {
-                var args = new string[] { "push", nupkgFolder, "-c", sleetConfig, "-s", "feed", "-f" };
+                using (var cache = new LocalCache())
+                {
+                    var settings = LocalSettings.Load(sleetConfig);
+                    var fileSystem = FileSystemFactory.CreateFileSystem(settings, cache, "feed");
 
-                var exitCode = await Sleet.Program.MainCore(args, log);
+                    var success = await PushCommand.RunAsync(settings, fileSystem, new List<string>() { nupkgFolder }, true, log);
 
-                Assert.Equal(0, exitCode);
+                    Assert.True(success);
+                }
             }
         }
 

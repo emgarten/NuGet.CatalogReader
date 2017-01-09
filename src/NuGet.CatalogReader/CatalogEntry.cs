@@ -112,30 +112,44 @@ namespace NuGet.CatalogReader
             return _getJson(Uri, token);
         }
 
-
+        /// <summary>
+        /// Nupkg download Url.
+        /// </summary>
         public Uri NupkgUri
         {
             get
             {
-                return NuGetUriUtility.GetNupkgUri(_serviceIndex.GetPackageBaseAddressUri(), Id, Version);
+                return NuGetv3FeedBuilder.GetNupkgUri(_serviceIndex.GetPackageBaseAddressUri(), Id, Version);
             }
         }
 
+        /// <summary>
+        /// Download the nupkg.
+        /// </summary>
         public async Task<Stream> GetNupkgAsync()
         {
             return await GetNupkgAsync(CancellationToken.None);
         }
 
+        /// <summary>
+        /// Download the nupkg.
+        /// </summary>
         public async Task<Stream> GetNupkgAsync(CancellationToken token)
         {
             return await _getStream(NupkgUri, token);
         }
 
+        /// <summary>
+        /// Download the nupkg to a folder.
+        /// </summary>
         public Task<FileInfo> DownloadNupkgAsync(string outputDirectory)
         {
             return DownloadNupkgAsync(outputDirectory, DownloadMode.FailIfExists, CancellationToken.None);
         }
 
+        /// <summary>
+        /// Download the nupkg to a folder.
+        /// </summary>
         public async Task<FileInfo> DownloadNupkgAsync(string outputDirectory, DownloadMode mode, CancellationToken token)
         {
             using (var stream = await GetNupkgAsync(token))
@@ -148,19 +162,28 @@ namespace NuGet.CatalogReader
             }
         }
 
+        /// <summary>
+        /// Nuspec download url.
+        /// </summary>
         public Uri NuspecUri
         {
             get
             {
-                return NuGetUriUtility.GetNuspecUri(_serviceIndex.GetPackageBaseAddressUri(), Id, Version);
+                return NuGetv3FeedBuilder.GetNuspecUri(_serviceIndex.GetPackageBaseAddressUri(), Id, Version);
             }
         }
 
+        /// <summary>
+        /// Nuspec download url.
+        /// </summary>
         public Task<NuspecReader> GetNuspecAsync()
         {
             return GetNuspecAsync(CancellationToken.None);
         }
 
+        /// <summary>
+        /// Read the nuspec from the feed.
+        /// </summary>
         public async Task<NuspecReader> GetNuspecAsync(CancellationToken token)
         {
             using (var stream = await _getStream(NuspecUri, token))
@@ -169,11 +192,17 @@ namespace NuGet.CatalogReader
             }
         }
 
+        /// <summary>
+        /// Download the nuspec to a directory.
+        /// </summary>
         public Task<FileInfo> DownloadNuspecAsync(string outputDirectory)
         {
             return DownloadNuspecAsync(outputDirectory, DownloadMode.FailIfExists, CancellationToken.None);
         }
 
+        /// <summary>
+        /// Download the nuspec to a directory.
+        /// </summary>
         public async Task<FileInfo> DownloadNuspecAsync(string outputDirectory, DownloadMode mode, CancellationToken token)
         {
             using (var stream = await GetNupkgAsync(token))
@@ -186,65 +215,98 @@ namespace NuGet.CatalogReader
             }
         }
 
+        /// <summary>
+        /// PackageBaseAddress index.json url.
+        /// </summary>
         public Uri PackageBaseAddressIndexUri
         {
             get
             {
-                return NuGetUriUtility.GetPackageBaseAddressIndexUri(_serviceIndex.GetPackageBaseAddressUri(), Id);
+                return NuGetv3FeedBuilder.GetPackageBaseAddressIndexUri(_serviceIndex.GetPackageBaseAddressUri(), Id);
             }
         }
 
+        /// <summary>
+        /// Read the PackageBaseAddress index.json. This contains a list of all package versions both listed and unlisted.
+        /// </summary>
         public Task<JObject> GetPackageBaseAddressIndexUriAsync()
         {
             return GetPackageBaseAddressIndexUriAsync(CancellationToken.None);
         }
 
+        /// <summary>
+        /// Read the PackageBaseAddress index.json. This contains a list of all package versions both listed and unlisted for this package id.
+        /// </summary>
         public async Task<JObject> GetPackageBaseAddressIndexUriAsync(CancellationToken token)
         {
             return await _getJson(PackageBaseAddressIndexUri, token);
         }
 
+        /// <summary>
+        /// Catalog package registrations url for this package id.
+        /// </summary>
         public Uri RegistrationIndexUri
         {
             get
             {
-                return NuGetUriUtility.GetRegistrationIndexUri(_serviceIndex.GetRegistrationBaseUri(), Id);
+                return NuGetv3FeedBuilder.GetRegistrationIndexUri(_serviceIndex.GetRegistrationBaseUri(), Id);
             }
         }
 
+        /// <summary>
+        /// Read the package registrations index for this package id.
+        /// </summary>
         public async Task<JObject> GetRegistrationIndexUriAsync()
         {
             return await GetRegistrationIndexUriAsync(CancellationToken.None);
         }
 
+        /// <summary>
+        /// Read the package registrations index for this package id.
+        /// </summary>
         public async Task<JObject> GetRegistrationIndexUriAsync(CancellationToken token)
         {
             return await _getJson(RegistrationIndexUri, token);
         }
 
+        /// <summary>
+        /// Registration for this package version. This is a permalink url that points to the registation and catalog page.
+        /// </summary>
         public Uri PackageRegistrationUri
         {
             get
             {
-                return NuGetUriUtility.GetPackageRegistrationUri(_serviceIndex.GetRegistrationBaseUri(), Id, Version);
+                return NuGetv3FeedBuilder.GetPackageRegistrationUri(_serviceIndex.GetRegistrationBaseUri(), Id, Version);
             }
         }
 
+        /// <summary>
+        /// Read the registration for this package version. This is a permalink url that points to the registation and catalog page.
+        /// </summary>
         public Task<JObject> GetPackageRegistrationUriAsync()
         {
             return GetPackageRegistrationUriAsync(CancellationToken.None);
         }
 
+        /// <summary>
+        /// Read the registration for this package version. This is a permalink url that points to the registation and catalog page.
+        /// </summary>
         public async Task<JObject> GetPackageRegistrationUriAsync(CancellationToken token)
         {
             return await _getJson(PackageRegistrationUri, token);
         }
 
+        /// <summary>
+        /// True if the package is listed in search.
+        /// </summary>
         public Task<bool> IsListedAsync()
         {
             return IsListedAsync(CancellationToken.None);
         }
 
+        /// <summary>
+        /// True if the package is listed in search.
+        /// </summary>
         public async Task<bool> IsListedAsync(CancellationToken token)
         {
             var json = await GetPackageRegistrationUriAsync(token);

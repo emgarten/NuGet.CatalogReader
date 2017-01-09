@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using NuGet.Versioning;
 
 namespace NuGet.CatalogReader
 {
-    public static class NuGetUriUtility
+    public static class NuGetv3FeedBuilder
     {
         public static Uri GetPackageRegistrationUri(Uri registrationBaseUri, string id, NuGetVersion version)
         {

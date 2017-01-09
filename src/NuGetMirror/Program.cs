@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Extensions.CommandLineUtils;
 using NuGet.Common;
+using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 
@@ -29,6 +30,11 @@ namespace NuGetMirror
         }
 
         public static Task<int> MainCore(string[] args, ILogger log)
+        {
+            return MainCore(args, httpSource: null, log: log);
+        }
+
+        public static Task<int> MainCore(string[] args, HttpSource httpSource, ILogger log)
         {
 #if DEBUG
             if (args.Contains("--debug"))
@@ -55,8 +61,8 @@ namespace NuGetMirror
 
             Configure();
 
-            ListCommand.Register(app, log);
-            NupkgsCommand.Register(app, log);
+            ListCommand.Register(app, httpSource, log);
+            NupkgsCommand.Register(app, httpSource, log);
 
             app.OnExecute(() =>
             {
@@ -103,6 +109,7 @@ namespace NuGetMirror
 
         private static void Configure()
         {
+#if IS_DESKTOP
             // Set connection limit
             if (!RuntimeEnvironmentHelper.IsMono)
             {
@@ -119,6 +126,7 @@ namespace NuGetMirror
                 SecurityProtocolType.Tls |
                 SecurityProtocolType.Tls11 |
                 SecurityProtocolType.Tls12;
+#endif
 
             UserAgent.SetUserAgentString(new UserAgentStringBuilder("NuGetMirror"));
         }
