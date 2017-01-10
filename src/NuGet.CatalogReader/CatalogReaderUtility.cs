@@ -1,12 +1,14 @@
 ﻿using System;
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NuGet.Common;
 using NuGet.Configuration;
+using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 
@@ -57,7 +59,7 @@ namespace NuGet.CatalogReader
 
         internal static async Task DownloadFileAsync(Stream stream, FileInfo outputFile, DateTimeOffset created, DownloadMode mode, CancellationToken token)
         {
-            if (outputFile.Exists)
+            if (outputFile.Exists && IsValidNupkg(outputFile))
             {
                 if (mode == DownloadMode.FailIfExists)
                 {
@@ -102,15 +104,33 @@ namespace NuGet.CatalogReader
             }
         }
 
-        internal static JObject LoadJson(Stream stream)
+        internal static bool IsValidNupkg(FileInfo file)
         {
-            using (var reader = new StreamReader(stream))
+            try
+            {
+                using (var reader = new PackageArchiveReader(file.FullName))
+                {
+                    return reader.NuspecReader != null;
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
+        internal static JObject LoadJson(Stream stream, bool leaveOpen)
+        {
+            using (var reader = new StreamReader(stream, Encoding.UTF8, false, 8192, leaveOpen))
             using (var jsonReader = new JsonTextReader(reader))
             {
                 // Avoid error prone json.net date handling
                 jsonReader.DateParseHandling = DateParseHandling.None;
 
-                return JObject.Load(jsonReader);
+                var json = JObject.Load(jsonReader);
+
+                return json;
             }
         }
     }

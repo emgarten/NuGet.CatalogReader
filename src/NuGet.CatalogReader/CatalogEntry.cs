@@ -16,13 +16,14 @@ namespace NuGet.CatalogReader
     /// </summary>
     public class CatalogEntry : IComparable<CatalogEntry>, IEquatable<CatalogEntry>
     {
-        private readonly int _hashCode;
         private readonly Func<Uri, CancellationToken, Task<JObject>> _getJson;
-        private readonly Func<Uri, CancellationToken, Task<Stream>> _getStream;
+        private readonly Func<Uri, CancellationToken, Task<NuspecReader>> _getNuspec;
+        private readonly Func<Uri, CancellationToken, Task<HttpSourceResult>> _getNupkg;
         private readonly ServiceIndexResourceV3 _serviceIndex;
+        private readonly string[] _urlParts;
 
         internal CatalogEntry(
-            Uri uri,
+            string[] urlParts,
             string type,
             string commitId,
             DateTimeOffset commitTs,
@@ -30,24 +31,31 @@ namespace NuGet.CatalogReader
             NuGetVersion version,
             ServiceIndexResourceV3 serviceIndex,
             Func<Uri, CancellationToken, Task<JObject>> getJson,
-            Func<Uri, CancellationToken, Task<Stream>> getStream)
+            Func<Uri, CancellationToken, Task<NuspecReader>> getNuspec,
+            Func<Uri, CancellationToken, Task<HttpSourceResult>> getNupkg)
         {
-            Uri = uri;
+            _urlParts = urlParts;
             Types = new List<string>() { type };
             CommitId = commitId;
             CommitTimeStamp = commitTs;
             Id = id;
             Version = version;
-            _hashCode = $"{Id}/{Version.ToNormalizedString()}".ToLowerInvariant().GetHashCode();
             _getJson = getJson;
             _serviceIndex = serviceIndex;
-            _getStream = getStream;
+            _getNuspec = getNuspec;
+            _getNupkg = getNupkg;
         }
 
         /// <summary>
         /// Catalog page URI.
         /// </summary>
-        public Uri Uri { get; }
+        public Uri Uri
+        {
+            get
+            {
+                return new Uri(string.Join("/", _urlParts));
+            }
+        }
 
         /// <summary>
         /// Entry RDF types.
@@ -136,7 +144,8 @@ namespace NuGet.CatalogReader
         /// </summary>
         public async Task<Stream> GetNupkgAsync(CancellationToken token)
         {
-            return await _getStream(NupkgUri, token);
+            var result = await _getNupkg(NupkgUri, token);
+            return result.Stream;
         }
 
         /// <summary>
@@ -154,7 +163,7 @@ namespace NuGet.CatalogReader
         {
             using (var stream = await GetNupkgAsync(token))
             {
-                var path = new FileInfo(Path.Combine(outputDirectory, $"{FileBaseName}.nupkg".ToLowerInvariant()));
+                var path = new FileInfo(Path.Combine(outputDirectory, $"{FileBaseName}.nupkg"));
 
                 await CatalogReaderUtility.DownloadFileAsync(stream, path, CommitTimeStamp, mode, token);
 
@@ -186,10 +195,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         public async Task<NuspecReader> GetNuspecAsync(CancellationToken token)
         {
-            using (var stream = await _getStream(NuspecUri, token))
-            {
-                return new NuspecReader(stream);
-            }
+            return await _getNuspec(NuspecUri, token);
         }
 
         /// <summary>
@@ -346,7 +352,7 @@ namespace NuGet.CatalogReader
         /// <returns>Hash code</returns>
         public override int GetHashCode()
         {
-            return _hashCode;
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(FileBaseName);
         }
 
         /// <summary>

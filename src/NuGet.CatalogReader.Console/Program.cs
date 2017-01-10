@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace NuGet.CatalogReader
 {
@@ -13,13 +14,17 @@ namespace NuGet.CatalogReader
         {
             try
             {
-                var reader = new CatalogReader(new Uri("https://api.nuget.org/v23/index.json"));
+                var log = new ConsoleLogger();
 
-                var entries = reader.GetEntriesAsync(DateTimeOffset.Parse("2017-01-08T00:09:42.4368899Z"), DateTimeOffset.Parse("2017-01-09T21:09:42.4368899Z"), CancellationToken.None).Result;
+                var reader = new CatalogReader(new Uri("https://api.nuget.org/v3/index.json"), TimeSpan.FromHours(0), log);
+                var entries = reader.GetFlattenedEntriesAsync(DateTimeOffset.Parse("2017-01-02"), DateTimeOffset.Parse("2017-01-03"), CancellationToken.None).Result;
 
-                foreach (var entry in entries)
+                foreach (var group in entries.GroupBy(e => e.Id, StringComparer.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine(entry);
+                    var entry = group.First();
+
+                    entry.DownloadNupkgAsync("d:\\tmp\\out");
+                    entry.DownloadNuspecAsync("d:\\tmp\\out");
                 }
             }
             catch (Exception ex)

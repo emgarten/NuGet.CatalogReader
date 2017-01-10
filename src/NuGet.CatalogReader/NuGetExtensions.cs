@@ -4,9 +4,11 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NuGet.Common;
+using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 
@@ -20,17 +22,57 @@ namespace NuGet.CatalogReader
 
             var request = new HttpSourceCachedRequest(uri.AbsoluteUri, cacheKey, cacheContext)
             {
-                EnsureValidContents = stream => CatalogReaderUtility.LoadJson(stream),
+                EnsureValidContents = stream => CatalogReaderUtility.LoadJson(stream, true),
                 IgnoreNotFounds = false
             };
 
             using (var result = await source.GetAsync(request, log, token))
             {
-                return CatalogReaderUtility.LoadJson(result.Stream);
+                return CatalogReaderUtility.LoadJson(result.Stream, false);
             }
         }
 
-        internal static async Task<Stream> GetStreamAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
+        internal static async Task<NuspecReader> GetNuspecAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
+        {
+            var cacheKey = GetHashKey(uri);
+
+            var request = new HttpSourceCachedRequest(uri.AbsoluteUri, cacheKey, cacheContext)
+            {
+                IgnoreNotFounds = false,
+                EnsureValidContents = stream =>
+                {
+                    using (var reader = new StreamReader(stream, Encoding.UTF8, false, 8192, true))
+                    {
+                        XDocument.Load(reader);
+                    }
+                }
+            };
+
+            var result = await source.GetAsync(request, log, token);
+            return new NuspecReader(result.Stream);
+        }
+
+        internal static async Task<HttpSourceResult> GetNupkgAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
+        {
+            var cacheKey = GetHashKey(uri);
+
+            var request = new HttpSourceCachedRequest(uri.AbsoluteUri, cacheKey, cacheContext)
+            {
+                IgnoreNotFounds = false,
+                EnsureValidContents = stream =>
+                {
+                    using (var reader = new PackageArchiveReader(stream, leaveStreamOpen: true))
+                    {
+                        reader.NuspecReader.GetIdentity();
+                    }
+                }
+            };
+
+            var result = await source.GetAsync(request, log, token);
+            return result;
+        }
+
+        internal static async Task<HttpSourceResult> GetStreamAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
         {
             var cacheKey = GetHashKey(uri);
 
@@ -39,9 +81,7 @@ namespace NuGet.CatalogReader
                 IgnoreNotFounds = false
             };
 
-            var result = await source.GetAsync(request, log, token);
-
-            return result.Stream;
+            return await source.GetAsync(request, log, token);
         }
 
         private static string GetHashKey(Uri uri)

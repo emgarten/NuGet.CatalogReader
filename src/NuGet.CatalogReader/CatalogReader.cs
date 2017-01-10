@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -8,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using NuGet.Common;
+using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
@@ -313,6 +315,25 @@ namespace NuGet.CatalogReader
             return entries.Where(e => e.CommitTimeStamp > start && e.CommitTimeStamp <= end).ToList();
         }
 
+        /// <summary>
+        /// Clear the HttpCacheFolder cache folder.
+        /// Use this to free up space when downloading large numbers of packages.
+        /// </summary>
+        public void ClearCache()
+        {
+            try
+            {
+                if (Directory.Exists(HttpCacheFolder))
+                {
+                    Directory.Delete(HttpCacheFolder);
+                }
+            }
+            catch
+            {
+                // Ignore clean up errors
+            }
+        }
+
         private async Task<IReadOnlyList<CatalogEntry>> GetEntriesCommitTimeDescAsync(DateTimeOffset start, DateTimeOffset end, CancellationToken token)
         {
             var entries = await GetEntriesAsync(start, end, token);
@@ -323,6 +344,7 @@ namespace NuGet.CatalogReader
         private async Task<List<CatalogEntry>> GetEntriesAsync(IEnumerable<Uri> pageUris, CancellationToken token)
         {
             var maxThreads = Math.Max(1, MaxThreads);
+            var cache = new ReferenceCache();
 
             var entries = new List<CatalogEntry>();
             var tasks = new List<Task<JObject>>(maxThreads);
@@ -333,7 +355,7 @@ namespace NuGet.CatalogReader
 
                 while (tasks.Count > maxThreads)
                 {
-                    entries.AddRange(await CompleteTaskAsync(tasks));
+                    entries.AddRange(await CompleteTaskAsync(tasks, cache));
                 }
 
                 tasks.Add(_httpSource.GetJObjectAsync(uri, _cacheContext, _log, token));
@@ -341,13 +363,13 @@ namespace NuGet.CatalogReader
 
             while (tasks.Count > 0)
             {
-                entries.AddRange(await CompleteTaskAsync(tasks));
+                entries.AddRange(await CompleteTaskAsync(tasks, cache));
             }
 
             return entries;
         }
 
-        private async Task<List<CatalogEntry>> CompleteTaskAsync(List<Task<JObject>> tasks)
+        private async Task<List<CatalogEntry>> CompleteTaskAsync(List<Task<JObject>> tasks, ReferenceCache cache)
         {
             var entries = new List<CatalogEntry>();
 
@@ -357,28 +379,36 @@ namespace NuGet.CatalogReader
                 var json = await task;
                 tasks.Remove(task);
 
-                entries.AddRange(GetEntriesFromJson(json));
+                entries.AddRange(GetEntriesFromJson(json, cache));
             }
 
             return entries;
         }
 
-        private List<CatalogEntry> GetEntriesFromJson(JObject json)
+        private List<CatalogEntry> GetEntriesFromJson(JObject json, ReferenceCache cache)
         {
             var entries = new List<CatalogEntry>();
 
             foreach (var item in json["items"])
             {
+                // Store the url in pieces so it can be cached.
+                // Split on /
+                var urlParts = item["@id"]
+                    .ToObject<string>().Split('/')
+                    .Select(s => cache.GetString(s))
+                    .ToArray();
+
                 var entry = new CatalogEntry(
-                        new Uri(item["@id"].ToString()),
-                        item["@type"].ToString(),
-                        item["commitId"].ToString(),
-                        DateTime.Parse(item["commitTimeStamp"].ToString()),
-                        item["nuget:id"].ToString(),
-                        NuGetVersion.Parse(item["nuget:version"].ToString()),
+                        urlParts,
+                        cache.GetString(item["@type"].ToObject<string>()),
+                        cache.GetString(item["commitId"].ToObject<string>()),
+                        cache.GetDate(item["commitTimeStamp"].ToObject<string>()),
+                        cache.GetString(item["nuget:id"].ToObject<string>()),
+                        cache.GetVersion(item["nuget:version"].ToObject<string>()),
                         _serviceIndex,
-                        (uri, token) => GetJson(uri, token),
-                        (uri, token) => GetStream(uri, token));
+                        GetJson,
+                        GetNuspec,
+                        GetNupkg);
 
                 entries.Add(entry);
             }
@@ -386,14 +416,46 @@ namespace NuGet.CatalogReader
             return entries;
         }
 
-        private Task<JObject> GetJson(Uri uri, CancellationToken token)
+        private Func<Uri, CancellationToken, Task<JObject>> _getJson;
+        private Func<Uri, CancellationToken, Task<JObject>> GetJson
         {
-            return _httpSource.GetJObjectAsync(uri, _cacheContext, _log, token);
+            get
+            {
+                if (_getJson == null)
+                {
+                    _getJson = (uri, token) => _httpSource.GetJObjectAsync(uri, _cacheContext, _log, token);
+                }
+
+                return _getJson;
+            }
         }
 
-        private Task<Stream> GetStream(Uri uri, CancellationToken token)
+        private Func<Uri, CancellationToken, Task<HttpSourceResult>> _getNupkg;
+        private Func<Uri, CancellationToken, Task<HttpSourceResult>> GetNupkg
         {
-            return _httpSource.GetStreamAsync(uri, _cacheContext, _log, token);
+            get
+            {
+                if (_getNupkg == null)
+                {
+                    _getNupkg = (uri, token) => _httpSource.GetNupkgAsync(uri, _cacheContext, _log, token);
+                }
+
+                return _getNupkg;
+            }
+        }
+
+        private Func<Uri, CancellationToken, Task<NuspecReader>> _getNuspec;
+        private Func<Uri, CancellationToken, Task<NuspecReader>> GetNuspec
+        {
+            get
+            {
+                if (_getNuspec == null)
+                {
+                    _getNuspec = (uri, token) => _httpSource.GetNuspecAsync(uri, _cacheContext, _log, token);
+                }
+
+                return _getNuspec;
+            }
         }
 
         /// <summary>

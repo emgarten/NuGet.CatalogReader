@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -90,6 +91,8 @@ namespace NuGetMirror
                     }
                 }
 
+                var batchSize = 128;
+
                 var root = new DirectoryInfo(outputPath);
                 root.Create();
 
@@ -111,14 +114,73 @@ namespace NuGetMirror
                 using (var catalogReader = new CatalogReader(index, httpSource, cacheContext, TimeSpan.Zero, log))
                 {
                     // Find the most recent entry for each package in the range
-                    var entries = await catalogReader.GetFlattenedEntriesAsync(start, end, token);
+                    // Order by oldest first
+                    var toProcess = new Queue<CatalogEntry>((await catalogReader
+                        .GetFlattenedEntriesAsync(start, end, token))
+                        .OrderBy(e => e.CommitTimeStamp));
+
+                    var done = new List<CatalogEntry>(128);
+                    var complete = 0;
+                    var total = toProcess.Count;
 
                     // Download files
-                    var files = await ProcessEntriesUtility.RunAsync<FileInfo>(
-                        apply: e => DownloadNupkgAsync(e, root.FullName, mode, ignoreErrors.HasValue(), log, token),
-                        maxThreads: maxThreads,
-                        token: token,
-                        entries: entries);
+                    var files = new List<string>();
+                    var tasks = new List<Task<NupkgResult>>(maxThreads);
+
+                    // Download with throttling
+                    while (toProcess.Count > 0)
+                    {
+                        // Create batches
+                        var batch = new Queue<CatalogEntry>(batchSize);
+
+                        while (toProcess.Count > 0 && batch.Count < batchSize)
+                        {
+                            batch.Enqueue(toProcess.Dequeue());
+                        }
+
+                        while (batch.Count > 0)
+                        {
+                            if (tasks.Count == maxThreads)
+                            {
+                                await CompleteTaskAsync(files, tasks, done);
+                            }
+
+                            var entry = batch.Dequeue();
+                            tasks.Add(DownloadNupkgAsync(entry, root.FullName, mode, ignoreErrors.HasValue(), log, token));
+                        }
+
+                        // Wait for all batch downloads
+                        while (tasks.Count > 0)
+                        {
+                            await CompleteTaskAsync(files, tasks, done);
+                        }
+
+                        complete += done.Count;
+
+                        // Update cursor
+                        var newestCommit = GetNewestCommit(done, toProcess);
+                        if (newestCommit != null)
+                        {
+                            log.LogMinimal($"==============================================");
+                            log.LogMinimal($"[ {complete} / {total} ] nupkgs processed.");
+                            log.LogMinimal($"Most recent commit processed: {newestCommit.Value.ToString("o")}");
+
+                            double rate = complete / Math.Max(1, timer.Elapsed.TotalSeconds);
+                            var timeLeft = TimeSpan.FromSeconds(rate * (total - complete));
+
+                            log.LogMinimal($"Estimated time left: {timeLeft}");
+                            log.LogMinimal($"==============================================");
+
+                            log.LogMinimal($"Saving {Path.Combine(root.FullName, "cursor.json")}");
+                            MirrorUtility.SaveCursor(root, newestCommit.Value);
+                        }
+
+                        done.Clear();
+
+                        // Free up space
+                        log.LogMinimal($"Clearing tmp http cache");
+                        catalogReader.ClearCache();
+                    }
 
                     files = files.Where(e => e != null).ToList();
 
@@ -129,14 +191,14 @@ namespace NuGetMirror
                         {
                             foreach (var file in files)
                             {
-                                writer.WriteLine(file.FullName);
+                                writer.WriteLine(file);
                             }
                         }
                     }
 
                     foreach (var file in files)
                     {
-                        log.LogMinimal($"new: {file.FullName}");
+                        log.LogMinimal($"new: {file}");
                     }
 
                     timer.Stop();
@@ -149,21 +211,53 @@ namespace NuGetMirror
             });
         }
 
-        internal static Task<FileInfo> DownloadNupkgAsync(CatalogEntry entry, string rootDir, DownloadMode mode, bool ignoreErrors, ILogger log, CancellationToken token)
+        private static async Task CompleteTaskAsync(List<string> files, List<Task<NupkgResult>> tasks, List<CatalogEntry> done)
+        {
+            var task = await Task.WhenAny(tasks);
+            tasks.Remove(task);
+            files.Add(task.Result.Nupkg?.FullName);
+            done.Add(task.Result.Entry);
+        }
+
+        private static DateTimeOffset? GetNewestCommit(List<CatalogEntry> done, Queue<CatalogEntry> toProcess)
+        {
+            IEnumerable<CatalogEntry> sorted = done;
+
+            if (toProcess.Count > 0)
+            {
+                sorted = sorted.Where(e => e.CommitTimeStamp < toProcess.Peek().CommitTimeStamp);
+            }
+
+            return sorted.OrderByDescending(e => e.CommitTimeStamp).FirstOrDefault()?.CommitTimeStamp;
+        }
+
+        internal static async Task<NupkgResult> DownloadNupkgAsync(CatalogEntry entry, string rootDir, DownloadMode mode, bool ignoreErrors, ILogger log, CancellationToken token)
         {
             // id/version/id.version.nupkg
             var outputDir = Path.Combine(rootDir, entry.Id.ToLowerInvariant(), entry.Version.ToNormalizedString().ToLowerInvariant());
 
+            var result = new NupkgResult()
+            {
+                Entry = entry
+            };
+
             try
             {
-                return entry.DownloadNupkgAsync(outputDir, mode, token);
+                result.Nupkg = await entry.DownloadNupkgAsync(outputDir, mode, token);
             }
             catch (Exception ex) when (ignoreErrors)
             {
                 MirrorUtility.LogExceptionAsWarning(ex, log);
             }
 
-            return null;
+            return result;
+        }
+
+        internal class NupkgResult
+        {
+            public FileInfo Nupkg { get; set; }
+
+            public CatalogEntry Entry { get; set; }
         }
     }
 }
