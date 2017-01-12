@@ -220,7 +220,7 @@ namespace NuGetMirror
                             }
                             else
                             {
-                                tasks.Add(DownloadNupkgV2Async(entry, root.FullName, mode, stopOnError.HasValue(), deepLogger, token));
+                                tasks.Add(DownloadNupkgV2Async(entry, root.FullName, mode, stopOnError.HasValue(), log, token));
                             }
                         }
 
