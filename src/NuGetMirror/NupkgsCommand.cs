@@ -9,20 +9,22 @@ using Microsoft.Extensions.CommandLineUtils;
 using NuGet.CatalogReader;
 using NuGet.Common;
 using NuGet.Packaging;
-using NuGet.Packaging.Core;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 
 namespace NuGetMirror
 {
+    /// <summary>
+    /// Mirror nupkgs to a folder.
+    /// </summary>
     internal static class NupkgsCommand
     {
-        public static void Register(CommandLineApplication cmdApp, HttpSource httpSource, ILogger log)
+        public static void Register(CommandLineApplication cmdApp, HttpSource httpSource, ILogger consoleLog)
         {
-            cmdApp.Command("nupkgs", (cmd) => Run(cmd, httpSource, log), throwOnUnexpectedArg: true);
+            cmdApp.Command("nupkgs", (cmd) => Run(cmd, httpSource, consoleLog), throwOnUnexpectedArg: true);
         }
 
-        private static void Run(CommandLineApplication cmd, HttpSource httpSource, ILogger log)
+        private static void Run(CommandLineApplication cmd, HttpSource httpSource, ILogger consoleLog)
         {
             cmd.Description = "Mirror nupkgs to a folder.";
 
@@ -31,6 +33,9 @@ namespace NuGetMirror
             var stopOnError = cmd.Option("--stop-on-error", "Stop when an error such as a bad or missing package occurs. The default is to warn since this is often expected for nuget.org.", CommandOptionType.NoValue);
             var delay = cmd.Option("--delay", "Avoid downloading the very latest packages on the feed to avoid errors. This value is in minutes. Default: 10", CommandOptionType.SingleValue);
             var maxThreadsOption = cmd.Option("--max-threads", "Maximum number of concurrent downloads. Default: 8", CommandOptionType.SingleValue);
+            var verbose = cmd.Option("--verbose", "Output additional network information.", CommandOptionType.NoValue);
+            var includeIdOption = cmd.Option("-i|--include-id", "Include only these package ids or wildcards. May be provided multiple times.", CommandOptionType.MultipleValue);
+            var excludeIdOption = cmd.Option("-e|--exclude-id", "Exclude these package ids or wildcards. May be provided multiple times.", CommandOptionType.MultipleValue);
 
             var argRoot = cmd.Argument(
                 "[root]",
@@ -53,7 +58,7 @@ namespace NuGetMirror
 
                 if (!index.AbsolutePath.EndsWith("/index.json", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new ArgumentException($"Invalid feed url: '{argRoot.Value}'. Provide the full http url to a v3 nuget feed.");
+                    throw new ArgumentException($"Invalid feed url: '{argRoot.Value}'. Provide the full http url to a v3 nuget feed. For nuget.org use: https://api.nuget.org/v3/index.json");
                 }
 
                 // Create root
@@ -123,22 +128,66 @@ namespace NuGetMirror
                 var token = CancellationToken.None;
                 var mode = DownloadMode.OverwriteIfNewer;
 
+                var errorLogPath = Path.Combine(outputPath, "lastRunErrors.txt");
+                FileUtility.Delete(errorLogPath);
+
+                // Loggers
+                // source -> deep -> file -> Console
+                var log = new FileLogger(consoleLog, LogLevel.Error, errorLogPath);
+                var deepLogger = new FilterLogger(log, LogLevel.Error);
+
+                // Init
+                log.LogInformation($"Mirroring {index.AbsoluteUri} -> {outputPath}");
+
+                var formatName = useV3Format ? "{id}/{version}/{id}.{version}.nupkg" : "{id}/{id}.{version}.nupkg";
+                log.LogInformation($"Folder format: {formatName}");
+
+                log.LogInformation($"Cursor: {Path.Combine(outputPath, "cursor.json")}");
+                log.LogInformation($"Change log: {outputFilesInfo.FullName}");
+                log.LogInformation($"Error log: {errorLogPath}");
+
+                log.LogInformation("Range start: " + start.ToString("o"));
+                log.LogInformation("Range end: " + end.ToString("o"));
+                log.LogInformation($"Batch size: {batchSize}");
+                log.LogInformation($"Threads: {maxThreads}");
+
                 // CatalogReader
                 using (var cacheContext = new SourceCacheContext())
-                using (var catalogReader = new CatalogReader(index, httpSource, cacheContext, TimeSpan.Zero, log))
+                using (var catalogReader = new CatalogReader(index, httpSource, cacheContext, TimeSpan.Zero, deepLogger))
                 {
                     // Find the most recent entry for each package in the range
                     // Order by oldest first
-                    var toProcess = new Queue<CatalogEntry>((await catalogReader
-                        .GetFlattenedEntriesAsync(start, end, token))
-                        .OrderBy(e => e.CommitTimeStamp));
+                    IEnumerable<CatalogEntry> entryQuery = (await catalogReader
+                        .GetFlattenedEntriesAsync(start, end, token));
 
-                    var done = new List<CatalogEntry>(128);
+                    // Remove all but includes if given
+                    if (includeIdOption.HasValue())
+                    {
+                        var regex = includeIdOption.Values.Select(s => MirrorUtility.WildcardToRegex(s)).ToArray();
+
+                        entryQuery = entryQuery.Where(e =>
+                            regex.Any(r => r.IsMatch(e.Id)));
+                    }
+
+                    // Remove all excludes if given
+                    if (excludeIdOption.HasValue())
+                    {
+                        var regex = excludeIdOption.Values.Select(s => MirrorUtility.WildcardToRegex(s)).ToArray();
+
+                        entryQuery = entryQuery.Where(e =>
+                            regex.All(r => !r.IsMatch(e.Id)));
+                    }
+
+                    var toProcess = new Queue<CatalogEntry>(entryQuery.OrderBy(e => e.CommitTimeStamp));
+
+                    log.LogInformation($"Catalog entries found: {toProcess.Count}");
+
+                    var done = new List<CatalogEntry>(batchSize);
                     var complete = 0;
                     var total = toProcess.Count;
+                    var totalDownloads = 0;
 
                     // Download files
-                    var files = new List<string>();
                     var tasks = new List<Task<NupkgResult>>(maxThreads);
 
                     // Download with throttling
@@ -146,6 +195,9 @@ namespace NuGetMirror
                     {
                         // Create batches
                         var batch = new Queue<CatalogEntry>(batchSize);
+                        var files = new List<string>();
+                        var batchTimer = new Stopwatch();
+                        batchTimer.Start();
 
                         while (toProcess.Count > 0 && batch.Count < batchSize)
                         {
@@ -164,11 +216,11 @@ namespace NuGetMirror
                             // Queue download task
                             if (useV3Format)
                             {
-                                tasks.Add(DownloadNupkgV3Async(entry, root.FullName, mode, stopOnError.HasValue(), log, token));
+                                tasks.Add(DownloadNupkgV3Async(entry, root.FullName, mode, stopOnError.HasValue(), log, deepLogger, token));
                             }
                             else
                             {
-                                tasks.Add(DownloadNupkgV2Async(entry, root.FullName, mode, stopOnError.HasValue(), log, token));
+                                tasks.Add(DownloadNupkgV2Async(entry, root.FullName, mode, stopOnError.HasValue(), deepLogger, token));
                             }
                         }
 
@@ -178,56 +230,53 @@ namespace NuGetMirror
                             await CompleteTaskAsync(files, tasks, done);
                         }
 
+                        files = files.Where(e => e != null).ToList();
+
+                        // Write out new files
+                        using (var newFileWriter = new StreamWriter(new FileStream(outputFilesInfo.FullName, FileMode.Append, FileAccess.Write)))
+                        {
+                            foreach (var file in files)
+                            {
+                                newFileWriter.WriteLine(file);
+                            }
+                        }
+
                         complete += done.Count;
+                        totalDownloads += files.Count;
+                        batchTimer.Stop();
 
                         // Update cursor
                         var newestCommit = GetNewestCommit(done, toProcess);
                         if (newestCommit != null)
                         {
-                            log.LogMinimal($"==============================================");
-                            log.LogMinimal($"[ {complete} / {total} ] nupkgs processed.");
-                            log.LogMinimal($"Most recent commit processed: {newestCommit.Value.ToString("o")}");
+                            log.LogMinimal($"================[batch complete]================");
+                            log.LogMinimal($"Processed: {complete} / {total}");
+                            log.LogMinimal($"Batch downloads: {files.Count}");
+                            log.LogMinimal($"Batch time: {batchTimer.Elapsed}");
+                            log.LogMinimal($"Updating cursor.json: {newestCommit.Value.ToString("o")}");
 
                             double rate = complete / Math.Max(1, timer.Elapsed.TotalSeconds);
                             var timeLeft = TimeSpan.FromSeconds(rate * (total - complete));
 
                             log.LogMinimal($"Estimated time left: {timeLeft}");
-                            log.LogMinimal($"==============================================");
+                            log.LogMinimal($"================================================");
 
-                            log.LogMinimal($"Saving {Path.Combine(root.FullName, "cursor.json")}");
                             MirrorUtility.SaveCursor(root, newestCommit.Value);
                         }
 
                         done.Clear();
 
                         // Free up space
-                        log.LogMinimal($"Clearing tmp http cache");
                         catalogReader.ClearCache();
                     }
 
-                    files = files.Where(e => e != null).ToList();
-
-                    if (outputFilesInfo != null)
-                    {
-                        // Write out new files
-                        using (var writer = new StreamWriter(new FileStream(outputFilesInfo.FullName, FileMode.CreateNew)))
-                        {
-                            foreach (var file in files)
-                            {
-                                writer.WriteLine(file);
-                            }
-                        }
-                    }
-
-                    foreach (var file in files)
-                    {
-                        log.LogMinimal($"new: {file}");
-                    }
+                    // Set cursor to end time
+                    MirrorUtility.SaveCursor(root, end);
 
                     timer.Stop();
 
-                    var plural = files.Count == 1 ? "" : "s";
-                    log.LogMinimal($"Downloaded {files.Count} nupkg{plural} in {timer.Elapsed.ToString()}.");
+                    var plural = totalDownloads == 1 ? "" : "s";
+                    log.LogMinimal($"Downloaded {totalDownloads} nupkg{plural} in {timer.Elapsed.ToString()}.");
                 }
 
                 return 0;
@@ -285,18 +334,20 @@ namespace NuGetMirror
                     if (lastCreated < currentCreated)
                     {
                         result.Nupkg = nupkgFile;
+                        log.LogInformation(nupkgFile.FullName);
                     }
                 }
             }
             catch (Exception ex) when (!stopOnError)
             {
-                MirrorUtility.LogExceptionAsWarning(ex, log);
+                log.LogError($"Unable to download {entry.Id} {entry.Version.ToFullString()}");
+                MirrorUtility.LogExceptions(ex, log, "\t- ");
             }
 
             return result;
         }
 
-        internal static async Task<NupkgResult> DownloadNupkgV3Async(CatalogEntry entry, string rootDir, DownloadMode mode, bool stopOnError, ILogger log, CancellationToken token)
+        internal static async Task<NupkgResult> DownloadNupkgV3Async(CatalogEntry entry, string rootDir, DownloadMode mode, bool stopOnError, ILogger log, ILogger deepLog, CancellationToken token)
         {
             // id/version/id.version.nupkg 
             var versionFolderResolver = new VersionFolderPathResolver(rootDir);
@@ -330,6 +381,7 @@ namespace NuGetMirror
                     if (lastCreated < currentCreated || !File.Exists(hashPath) || !File.Exists(nuspecPath))
                     {
                         result.Nupkg = nupkgFile;
+                        log.LogInformation(nupkgFile.FullName);
 
                         FileUtility.Delete(hashPath);
                         FileUtility.Delete(nuspecPath);
@@ -343,7 +395,7 @@ namespace NuGetMirror
                             using (var reader = new PackageArchiveReader(fileStream))
                             {
                                 var nuspecFile = reader.GetNuspecFile();
-                                reader.ExtractFile(nuspecFile, nuspecPath, log);
+                                reader.ExtractFile(nuspecFile, nuspecPath, deepLog);
                             }
 
                             // Write package hash
@@ -354,7 +406,8 @@ namespace NuGetMirror
             }
             catch (Exception ex) when (!stopOnError)
             {
-                MirrorUtility.LogExceptionAsWarning(ex, log);
+                log.LogError($"Unable to download {entry.Id} {entry.Version.ToFullString()}");
+                MirrorUtility.LogExceptions(ex, log, "\t- ");
             }
 
             return result;

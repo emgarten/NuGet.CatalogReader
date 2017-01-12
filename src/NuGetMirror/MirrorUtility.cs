@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -74,20 +75,29 @@ namespace NuGetMirror
             File.WriteAllText(file.FullName, json.ToString());
         }
 
-        internal static void LogExceptionAsWarning(Exception ex, ILogger log)
+        internal static void LogExceptions(Exception ex, ILogger log, string prefix)
         {
             if (ex is AggregateException ag)
             {
                 foreach (var inner in ag.InnerExceptions)
                 {
-                    LogExceptionAsWarning(inner, log);
+                    LogExceptions(inner, log, prefix);
                 }
             }
             else
             {
-                log.LogWarning(ex.Message);
+                log.LogError(prefix + ex.Message);
                 log.LogDebug(ex.ToString());
             }
+        }
+
+        internal static Regex WildcardToRegex(string pattern)
+        {
+            var s = "^" + Regex.Escape(pattern).
+                                Replace("\\*", ".*").
+                                Replace("\\?", ".") + "$";
+
+            return new Regex(s, RegexOptions.IgnoreCase);
         }
     }
 }
