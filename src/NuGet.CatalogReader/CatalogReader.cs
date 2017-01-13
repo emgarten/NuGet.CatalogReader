@@ -321,12 +321,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         public void ClearCache()
         {
-            if (Directory.Exists(HttpCacheFolder))
-            {
-                CatalogReaderUtility.DeleteDirectory(HttpCacheFolder);
-
-                Directory.CreateDirectory(HttpCacheFolder);
-            }
+            CatalogReaderUtility.DeleteDirectoryFiles(HttpCacheFolder);
         }
 
         private async Task<IReadOnlyList<CatalogEntry>> GetEntriesCommitTimeDescAsync(DateTimeOffset start, DateTimeOffset end, CancellationToken token)

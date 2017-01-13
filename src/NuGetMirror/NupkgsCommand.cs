@@ -310,7 +310,7 @@ namespace NuGetMirror
             return sorted.OrderByDescending(e => e.CommitTimeStamp).FirstOrDefault()?.CommitTimeStamp;
         }
 
-        internal static async Task<NupkgResult> DownloadNupkgV2Async(CatalogEntry entry, string rootDir, DownloadMode mode, bool stopOnError, ILogger log, CancellationToken token)
+        internal static async Task<NupkgResult> DownloadNupkgV2Async(CatalogEntry entry, string rootDir, DownloadMode mode, bool ignoreErrors, ILogger log, CancellationToken token)
         {
             // id/id.version.nupkg 
             var outputDir = Path.Combine(rootDir, entry.Id.ToLowerInvariant());
@@ -345,7 +345,13 @@ namespace NuGetMirror
                     }
                 }
             }
-            catch (Exception ex) when (!stopOnError)
+            catch (HttpRequestException ex) when (ex.Message.Contains("404"))
+            {
+                log.LogWarning($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
+                    + Environment.NewLine
+                    + MirrorUtility.GetExceptions(ex, "\t- "));
+            }
+            catch (Exception ex) when (ignoreErrors)
             {
                 log.LogError($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
                     + Environment.NewLine
@@ -418,7 +424,7 @@ namespace NuGetMirror
                     + Environment.NewLine
                     + MirrorUtility.GetExceptions(ex, "\t- "));
             }
-            catch (Exception ex) when (!ignoreErrors)
+            catch (Exception ex) when (ignoreErrors)
             {
                 log.LogError($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
                     + Environment.NewLine

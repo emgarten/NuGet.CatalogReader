@@ -134,7 +134,7 @@ namespace NuGet.CatalogReader
             }
         }
 
-        internal static void DeleteDirectory(string dirPath)
+        internal static void DeleteDirectoryFiles(string dirPath)
         {
             try
             {
@@ -155,10 +155,8 @@ namespace NuGet.CatalogReader
                     foreach (var sub in Directory.GetDirectories(dirPath))
                     {
                         // Recurse
-                        DeleteDirectory(sub);
+                        DeleteDirectoryFiles(sub);
                     }
-
-                    Directory.Delete(dirPath);
                 }
             }
             catch
