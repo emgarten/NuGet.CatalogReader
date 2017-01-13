@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +12,7 @@ using Newtonsoft.Json.Linq;
 using NuGet.CatalogReader;
 using NuGet.Common;
 using NuGet.Protocol;
+using NuGet.Protocol.Core.Types;
 
 namespace NuGetMirror
 {
@@ -75,20 +78,23 @@ namespace NuGetMirror
             File.WriteAllText(file.FullName, json.ToString());
         }
 
-        internal static void LogExceptions(Exception ex, ILogger log, string prefix)
+        internal static string GetExceptions(Exception ex, string prefix)
         {
+            var sb = new StringBuilder();
+
             if (ex is AggregateException ag)
             {
                 foreach (var inner in ag.InnerExceptions)
                 {
-                    LogExceptions(inner, log, prefix);
+                    sb.Append(GetExceptions(inner, prefix));
                 }
             }
             else
             {
-                log.LogError(prefix + ex.Message);
-                log.LogDebug(ex.ToString());
+                sb.AppendLine(prefix + ex.Message);
             }
+
+            return sb.ToString();
         }
 
         internal static Regex WildcardToRegex(string pattern)
@@ -98,6 +104,25 @@ namespace NuGetMirror
                                 Replace("\\?", ".") + "$";
 
             return new Regex(s, RegexOptions.IgnoreCase);
+        }
+
+        internal static void SetTempRoot(this SourceCacheContext context, string path)
+        {
+            var folderProp = typeof(SourceCacheContext)
+               .GetProperty("GeneratedTempFolder", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+
+            var all = typeof(SourceCacheContext)
+               .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+
+            var members = typeof(SourceCacheContext)
+                    .GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+
+            var fields = typeof(SourceCacheContext)
+                    .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+
+            var setMember = fields.FirstOrDefault(e => e.Name == "<GeneratedTempFolder>k__BackingField");
+
+            setMember.SetValue(context, path);
         }
     }
 }

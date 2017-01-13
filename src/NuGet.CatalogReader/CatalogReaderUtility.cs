@@ -133,5 +133,38 @@ namespace NuGet.CatalogReader
                 return json;
             }
         }
+
+        internal static void DeleteDirectory(string dirPath)
+        {
+            try
+            {
+                if (Directory.Exists(dirPath))
+                {
+                    foreach (var file in Directory.GetFiles(dirPath))
+                    {
+                        try
+                        {
+                            File.Delete(file);
+                        }
+                        catch
+                        {
+                            // Ignore and skip
+                        }
+                    }
+
+                    foreach (var sub in Directory.GetDirectories(dirPath))
+                    {
+                        // Recurse
+                        DeleteDirectory(sub);
+                    }
+
+                    Directory.Delete(dirPath);
+                }
+            }
+            catch
+            {
+                // Ignore and skip
+            }
+        }
     }
 }

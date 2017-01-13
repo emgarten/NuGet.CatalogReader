@@ -321,16 +321,11 @@ namespace NuGet.CatalogReader
         /// </summary>
         public void ClearCache()
         {
-            try
+            if (Directory.Exists(HttpCacheFolder))
             {
-                if (Directory.Exists(HttpCacheFolder))
-                {
-                    Directory.Delete(HttpCacheFolder);
-                }
-            }
-            catch
-            {
-                // Ignore clean up errors
+                CatalogReaderUtility.DeleteDirectory(HttpCacheFolder);
+
+                Directory.CreateDirectory(HttpCacheFolder);
             }
         }
 
