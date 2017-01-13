@@ -101,7 +101,7 @@ namespace NuGetMirror
                     }
                 }
 
-                var batchSize = 128;
+                var batchSize = 1000;
 
                 var root = new DirectoryInfo(outputPath);
                 root.Create();
