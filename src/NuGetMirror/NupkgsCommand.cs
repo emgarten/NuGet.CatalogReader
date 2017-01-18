@@ -345,17 +345,26 @@ namespace NuGetMirror
                     }
                 }
             }
+            catch (TaskCanceledException)
+            {
+                // Ignore cancelled tasks
+            }
             catch (HttpRequestException ex) when (ex.Message.Contains("404"))
             {
                 log.LogWarning($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
                     + Environment.NewLine
                     + MirrorUtility.GetExceptions(ex, "\t- "));
             }
-            catch (Exception ex) when (ignoreErrors)
+            catch (Exception ex)
             {
                 log.LogError($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
                     + Environment.NewLine
                     + MirrorUtility.GetExceptions(ex, "\t- ").TrimEnd());
+
+                if (!ignoreErrors)
+                {
+                    throw;
+                }
             }
 
             return result;
@@ -418,17 +427,26 @@ namespace NuGetMirror
                     }
                 }
             }
+            catch (TaskCanceledException)
+            {
+                // Ignore cancelled tasks
+            }
             catch (HttpRequestException ex) when (ex.Message.Contains("404"))
             {
                 log.LogWarning($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
                     + Environment.NewLine
                     + MirrorUtility.GetExceptions(ex, "\t- "));
             }
-            catch (Exception ex) when (ignoreErrors)
+            catch (Exception ex)
             {
                 log.LogError($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
                     + Environment.NewLine
                     + MirrorUtility.GetExceptions(ex, "\t- ").TrimEnd());
+
+                if (!ignoreErrors)
+                {
+                    throw;
+                }
             }
 
             return result;

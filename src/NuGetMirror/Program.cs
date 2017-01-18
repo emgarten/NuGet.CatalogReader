@@ -102,7 +102,7 @@ namespace NuGetMirror
             }
             else
             {
-                log.LogError(ex.Message);
+                log.LogError($"[{ex.GetType()}] {ex.Message}");
                 log.LogDebug(ex.ToString());
             }
         }

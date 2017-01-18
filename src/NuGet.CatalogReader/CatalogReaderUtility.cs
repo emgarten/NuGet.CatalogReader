@@ -67,7 +67,7 @@ namespace NuGet.CatalogReader
                 }
                 else if (mode == DownloadMode.SkipIfExists)
                 {
-                    // noop
+                    // noop                    
                     return;
                 }
                 else if (mode == DownloadMode.OverwriteIfNewer)
