@@ -222,11 +222,11 @@ namespace NuGetMirror
                                 // Queue download task
                                 if (useV3Format)
                                 {
-                                    tasks.Add(DownloadNupkgV3Async(entry, root.FullName, mode, ignoreErrors.HasValue(), log, deepLogger, token));
+                                    tasks.Add(Task.Run(() => DownloadNupkgV3Async(entry, root.FullName, mode, ignoreErrors.HasValue(), log, deepLogger, token)));
                                 }
                                 else
                                 {
-                                    tasks.Add(DownloadNupkgV2Async(entry, root.FullName, mode, ignoreErrors.HasValue(), log, token));
+                                    tasks.Add(Task.Run(() => DownloadNupkgV2Async(entry, root.FullName, mode, ignoreErrors.HasValue(), log, token)));
                                 }
                             }
 
@@ -261,7 +261,7 @@ namespace NuGetMirror
                                 log.LogMinimal($"Batch time:\t\t{batchTimer.Elapsed}");
                                 log.LogMinimal($"Updating cursor.json:\t{newestCommit.Value.ToString("o")}");
 
-                                double rate = complete / Math.Max(1, timer.Elapsed.TotalSeconds);
+                                double rate = done.Count / Math.Max(1, batchTimer.Elapsed.TotalSeconds);
                                 var timeLeft = TimeSpan.FromSeconds(rate * (total - complete));
 
                                 log.LogMinimal($"Estimated time left:\t{timeLeft}");
