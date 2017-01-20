@@ -4,7 +4,10 @@ using System.Linq;
 
 namespace NuGet.CatalogReader
 {
-    public class CatalogPage : IComparable<CatalogPage>, IEquatable<CatalogPage>
+    /// <summary>
+    /// An entry on the catalog index.json page.
+    /// </summary>
+    public class CatalogPageEntry : IComparable<CatalogPageEntry>, IEquatable<CatalogPageEntry>
     {
         /// <summary>
         /// Commit id.
@@ -26,7 +29,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         public IReadOnlyList<string> Types { get; }
 
-        internal CatalogPage(
+        internal CatalogPageEntry(
             Uri uri,
             IEnumerable<string> types,
             string commitId,
@@ -40,7 +43,7 @@ namespace NuGet.CatalogReader
 
         public override bool Equals(object obj)
         {
-            return Equals(obj as CatalogPage);
+            return Equals(obj as CatalogPageEntry);
         }
 
         public override string ToString()
@@ -53,7 +56,7 @@ namespace NuGet.CatalogReader
             return Uri.GetHashCode();
         }
 
-        public int CompareTo(CatalogPage other)
+        public int CompareTo(CatalogPageEntry other)
         {
             if (other == null)
             {
@@ -63,7 +66,7 @@ namespace NuGet.CatalogReader
             return CommitTimeStamp.CompareTo(other.CommitTimeStamp);
         }
 
-        public bool Equals(CatalogPage other)
+        public bool Equals(CatalogPageEntry other)
         {
             return Uri.Equals(other.Uri);
         }

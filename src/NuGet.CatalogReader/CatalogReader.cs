@@ -271,19 +271,19 @@ namespace NuGet.CatalogReader
         /// <summary>
         /// Get catalog pages.
         /// </summary>
-        public Task<IReadOnlyList<CatalogPage>> GetPagesAsync(CancellationToken token)
+        public Task<IReadOnlyList<CatalogPageEntry>> GetPageEntriesAsync(CancellationToken token)
         {
-            return GetPagesAsync(DateTimeOffset.MinValue, DateTimeOffset.UtcNow, token);
+            return GetPageEntriesAsync(DateTimeOffset.MinValue, DateTimeOffset.UtcNow, token);
         }
 
         /// <summary>
         /// Get catalog pages.
         /// </summary>
-        public async Task<IReadOnlyList<CatalogPage>> GetPagesAsync(DateTimeOffset start, DateTimeOffset end, CancellationToken token)
+        public async Task<IReadOnlyList<CatalogPageEntry>> GetPageEntriesAsync(DateTimeOffset start, DateTimeOffset end, CancellationToken token)
         {
             var index = await GetCatalogIndexAsync(token);
 
-            var pages = new List<CatalogPage>();
+            var pages = new List<CatalogPageEntry>();
 
             if (index["items"] != null)
             {
@@ -292,10 +292,10 @@ namespace NuGet.CatalogReader
                     var dateTimeString = item.Value<string>("commitTimeStamp");
                     var dateTime = DateTimeOffset.Parse(dateTimeString);
                     var pageUri = new Uri(item["@id"].ToString());
-                    var types = item["@type"].Select(e => e.Value<string>());
+                    var types = new string[] { item.Value<string>("@type") };
                     var commitId = item.Value<string>("commitId");
 
-                    pages.Add(new CatalogPage(pageUri, types, commitId, dateTime));
+                    pages.Add(new CatalogPageEntry(pageUri, types, commitId, dateTime));
                 }
             }
             else
@@ -309,7 +309,7 @@ namespace NuGet.CatalogReader
             var commitAfter = pages.Where(p => p.CommitTimeStamp > end).OrderBy(p => p.CommitTimeStamp).FirstOrDefault();
             var commitBefore = pages.Where(p => p.CommitTimeStamp <= start).OrderByDescending(p => p.CommitTimeStamp).FirstOrDefault();
 
-            var inRange = new HashSet<CatalogPage>();
+            var inRange = new HashSet<CatalogPageEntry>();
 
             if (commitAfter != null)
             {
@@ -335,7 +335,7 @@ namespace NuGet.CatalogReader
         /// <returns>Entries within the start and end time. Start time is NOT included.</returns>
         public async Task<IReadOnlyList<CatalogEntry>> GetEntriesAsync(DateTimeOffset start, DateTimeOffset end, CancellationToken token)
         {
-            var pages = await GetPagesAsync(start, end, token);
+            var pages = await GetPageEntriesAsync(start, end, token);
 
             var entries = await GetEntriesAsync(pages, token);
 
@@ -358,7 +358,10 @@ namespace NuGet.CatalogReader
             return entries.OrderByDescending(e => e.CommitTimeStamp).ToList();
         }
 
-        public async Task<List<CatalogEntry>> GetEntriesAsync(IEnumerable<CatalogPage> pages, CancellationToken token)
+        /// <summary>
+        /// Retrieve entries for the given index page entries.
+        /// </summary>
+        public async Task<List<CatalogEntry>> GetEntriesAsync(IEnumerable<CatalogPageEntry> pages, CancellationToken token)
         {
             var maxThreads = Math.Max(1, MaxThreads);
             var cache = new ReferenceCache();
