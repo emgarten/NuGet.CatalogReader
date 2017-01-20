@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -16,45 +17,22 @@ namespace NuGet.CatalogReader
 {
     internal static class CatalogReaderUtility
     {
-        internal static HttpSource CreateSource(Uri index)
+        internal static Task<HttpHandlerResource> GetHandlerAsync(Uri index)
         {
-            var handler = new HttpClientHandler();
-
-            return CreateSource(index, handler, handler);
+            return GetHandlerAsync(index, wrapper: null);
         }
 
-        internal static HttpSource CreateSource(Uri index, HttpMessageHandler messageHandler, HttpClientHandler clientHandler)
+        internal static async Task<HttpHandlerResource> GetHandlerAsync(Uri index, HttpMessageHandler wrapper)
         {
-            if (messageHandler == null)
+            var source = Repository.Factory.GetCoreV3(index.AbsoluteUri);
+            var handler = await source.GetResourceAsync<HttpHandlerResource>();
+
+            if (wrapper != null)
             {
-                throw new ArgumentNullException(nameof(messageHandler));
+                handler = new HttpHandlerResourceV3(handler.ClientHandler, wrapper);
             }
 
-            if (clientHandler == null)
-            {
-                throw new ArgumentNullException(nameof(clientHandler));
-            }
-
-            var handlerResource = new HttpHandlerResourceV3(clientHandler, messageHandler);
-
-            return CreateSource(index, handlerResource);
-        }
-
-        internal static HttpSource CreateSource(Uri index, HttpHandlerResourceV3 handlerResource)
-        {
-            if (index == null)
-            {
-                throw new ArgumentNullException(nameof(index));
-            }
-
-            var packageSource = new PackageSource(index.AbsoluteUri);
-
-            var httpSource = new HttpSource(
-                packageSource,
-                () => Task.FromResult((HttpHandlerResource)handlerResource),
-                NullThrottle.Instance);
-
-            return httpSource;
+            return handler;
         }
 
         internal static async Task DownloadFileAsync(Stream stream, FileInfo outputFile, DateTimeOffset created, DownloadMode mode, CancellationToken token)
@@ -122,6 +100,8 @@ namespace NuGet.CatalogReader
 
         internal static JObject LoadJson(Stream stream, bool leaveOpen)
         {
+            stream.Position = 0;
+
             using (var reader = new StreamReader(stream, Encoding.UTF8, false, 8192, leaveOpen))
             using (var jsonReader = new JsonTextReader(reader))
             {

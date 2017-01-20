@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using NuGet.Common;
+using NuGet.Configuration;
 using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
@@ -22,10 +23,11 @@ namespace NuGet.CatalogReader
     public class CatalogReader : IDisposable
     {
         private readonly Uri _indexUri;
-        private readonly HttpSource _httpSource;
+        private HttpSource _httpSource;
         private readonly ILogger _log;
         private readonly HttpSourceCacheContext _cacheContext;
         private readonly SourceCacheContext _sourceCacheContext;
+        private readonly HttpMessageHandler _messageHandler;
         private ServiceIndexResourceV3 _serviceIndex;
 
         /// <summary>
@@ -49,7 +51,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
         public CatalogReader(Uri indexUri)
-            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri), cacheContext: null, cacheTimeout: TimeSpan.Zero, log: null)
+            : this(indexUri, httpSource: null, cacheContext: null, cacheTimeout: TimeSpan.Zero, log: null)
         {
         }
 
@@ -58,7 +60,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
         public CatalogReader(Uri indexUri, TimeSpan cacheTimeout)
-            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri), cacheContext: null, cacheTimeout: cacheTimeout, log: null)
+            : this(indexUri, httpSource: null, cacheContext: null, cacheTimeout: cacheTimeout, log: null)
         {
         }
 
@@ -67,7 +69,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
         public CatalogReader(Uri indexUri, ILogger log)
-            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri), cacheContext: null, cacheTimeout: TimeSpan.Zero, log: log)
+            : this(indexUri, httpSource: null, cacheContext: null, cacheTimeout: TimeSpan.Zero, log: log)
         {
         }
 
@@ -76,7 +78,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
         public CatalogReader(Uri indexUri, TimeSpan cacheTimeout, ILogger log)
-            : this(indexUri, CatalogReaderUtility.CreateSource(indexUri), cacheContext: null, cacheTimeout: cacheTimeout, log: log)
+            : this(indexUri, httpSource: null, cacheContext: null, cacheTimeout: cacheTimeout, log: log)
         {
         }
 
@@ -87,9 +89,7 @@ namespace NuGet.CatalogReader
         /// <param name="messageHandler">HTTP message handler.</param>
         public CatalogReader(Uri indexUri, HttpMessageHandler messageHandler)
             : this(indexUri,
-                  CatalogReaderUtility.CreateSource(indexUri, messageHandler, new HttpClientHandler()),
-                  cacheContext: null,
-                  cacheTimeout: TimeSpan.Zero,
+                  messageHandler: null,
                   log: null)
         {
         }
@@ -101,11 +101,12 @@ namespace NuGet.CatalogReader
         /// <param name="messageHandler">HTTP message handler.</param>
         public CatalogReader(Uri indexUri, HttpMessageHandler messageHandler, ILogger log)
             : this(indexUri,
-                  CatalogReaderUtility.CreateSource(indexUri, messageHandler, new HttpClientHandler()),
+                  httpSource: null,
                   cacheContext: null,
                   cacheTimeout: TimeSpan.Zero,
                   log: log)
         {
+            _messageHandler = messageHandler;
         }
 
         /// <summary>
@@ -120,11 +121,6 @@ namespace NuGet.CatalogReader
             _sourceCacheContext = cacheContext ?? new SourceCacheContext();
 
             _httpSource = httpSource;
-
-            if (_httpSource == null)
-            {
-                _httpSource = CatalogReaderUtility.CreateSource(indexUri);
-            }
 
             if (cacheTimeout == null)
             {
@@ -455,6 +451,8 @@ namespace NuGet.CatalogReader
         {
             if (_serviceIndex == null)
             {
+                await EnsureHttpSourceAsync();
+
                 var index = await _httpSource.GetJObjectAsync(_indexUri, _cacheContext, _log, token);
                 var resources = (index["resources"] as JArray);
 
@@ -464,6 +462,21 @@ namespace NuGet.CatalogReader
                 }
 
                 _serviceIndex = new ServiceIndexResourceV3(index, DateTime.UtcNow);
+            }
+        }
+
+        private async Task EnsureHttpSourceAsync()
+        {
+            if (_httpSource == null)
+            {
+                var handlerResource = await CatalogReaderUtility.GetHandlerAsync(_indexUri, _messageHandler);
+
+                var packageSource = new PackageSource(_indexUri.AbsoluteUri);
+
+                _httpSource = new HttpSource(
+                    packageSource,
+                    () => Task.FromResult((HttpHandlerResource)handlerResource),
+                    NullThrottle.Instance);
             }
         }
 

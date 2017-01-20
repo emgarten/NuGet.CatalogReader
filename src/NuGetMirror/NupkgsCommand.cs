@@ -101,7 +101,7 @@ namespace NuGetMirror
                     }
                 }
 
-                var batchSize = 1000;
+                var batchSize = 64;
 
                 var root = new DirectoryInfo(outputPath);
                 root.Create();
@@ -219,15 +219,22 @@ namespace NuGetMirror
 
                                 var entry = batch.Dequeue();
 
-                                // Queue download task
+                                Func<CatalogEntry, string> getPath = null;
+                                Func<CatalogEntry, Task<FileInfo>> getNupkg = null;
+
                                 if (useV3Format)
                                 {
-                                    tasks.Add(Task.Run(() => DownloadNupkgV3Async(entry, root.FullName, mode, ignoreErrors.HasValue(), log, deepLogger, token)));
+                                    getPath = (e) => GetV3Path(e, root.FullName);
+                                    getNupkg = (e) => DownloadNupkgV3Async(e, root.FullName, mode, log, deepLogger, token);
                                 }
                                 else
                                 {
-                                    tasks.Add(Task.Run(() => DownloadNupkgV2Async(entry, root.FullName, mode, ignoreErrors.HasValue(), log, token)));
+                                    getPath = (e) => GetV2Path(e, root.FullName);
+                                    getNupkg = (e) => DownloadNupkgV2Async(e, root.FullName, mode, log, token);
                                 }
+
+                                // Queue download task
+                                tasks.Add(Task.Run(async () => await RunWithRetryAsync(entry, ignoreErrors.HasValue(), getPath, getNupkg, log, token)));
                             }
 
                             // Wait for all batch downloads
@@ -261,10 +268,25 @@ namespace NuGetMirror
                                 log.LogMinimal($"Batch time:\t\t{batchTimer.Elapsed}");
                                 log.LogMinimal($"Updating cursor.json:\t{newestCommit.Value.ToString("o")}");
 
-                                double rate = done.Count / Math.Max(1, batchTimer.Elapsed.TotalSeconds);
+                                double rate = batchTimer.Elapsed.TotalSeconds / Math.Max(1, done.Count);
                                 var timeLeft = TimeSpan.FromSeconds(rate * (total - complete));
 
-                                log.LogMinimal($"Estimated time left:\t{timeLeft}");
+                                var timeLeftString = string.Empty;
+
+                                if (timeLeft.TotalHours >= 1)
+                                {
+                                    timeLeftString = $"{timeLeft.TotalHours} hours";
+                                }
+                                else if (timeLeft.TotalMinutes >= 1)
+                                {
+                                    timeLeftString = $"{timeLeft.TotalMinutes} minutes";
+                                }
+                                else
+                                {
+                                    timeLeftString = $"{timeLeft.TotalSeconds} seconds";
+                                }
+
+                                log.LogMinimal($"Estimated time left:\t{timeLeftString}");
                                 log.LogMinimal($"================================================");
 
                                 MirrorUtility.SaveCursor(root, newestCommit.Value);
@@ -310,68 +332,79 @@ namespace NuGetMirror
             return sorted.OrderByDescending(e => e.CommitTimeStamp).FirstOrDefault()?.CommitTimeStamp;
         }
 
-        internal static async Task<NupkgResult> DownloadNupkgV2Async(CatalogEntry entry, string rootDir, DownloadMode mode, bool ignoreErrors, ILogger log, CancellationToken token)
+        internal static string GetV2Path(
+            CatalogEntry entry,
+            string rootDir)
         {
+            // id/id.version.nupkg 
+            var outputDir = Path.Combine(rootDir, entry.Id.ToLowerInvariant());
+            return Path.Combine(outputDir, $"{entry.FileBaseName}.nupkg");
+        }
+
+        internal static string GetV3Path(
+            CatalogEntry entry,
+            string rootDir)
+        {
+            // id/version/id.version.nupkg 
+            var versionFolderResolver = new VersionFolderPathResolver(rootDir);
+            return versionFolderResolver.GetPackageFilePath(entry.Id, entry.Version);
+        }
+
+        internal static async Task<FileInfo> DownloadNupkgV2Async(
+            CatalogEntry entry,
+            string rootDir,
+            DownloadMode mode,
+            ILogger log,
+            CancellationToken token)
+        {
+            FileInfo result = null;
+
             // id/id.version.nupkg 
             var outputDir = Path.Combine(rootDir, entry.Id.ToLowerInvariant());
             var nupkgPath = Path.Combine(outputDir, $"{entry.FileBaseName}.nupkg");
 
-            var result = new NupkgResult()
-            {
-                Entry = entry
-            };
-
             var lastCreated = DateTimeOffset.MinValue;
 
-            try
+            if (File.Exists(nupkgPath))
             {
-                if (File.Exists(nupkgPath))
+                lastCreated = File.GetCreationTimeUtc(nupkgPath);
+            }
+
+            // Download
+            var nupkgFile = await entry.DownloadNupkgAsync(outputDir, mode, token);
+
+            if (File.Exists(nupkgPath))
+            {
+                var currentCreated = File.GetCreationTimeUtc(nupkgPath);
+
+                if (lastCreated < currentCreated)
                 {
-                    lastCreated = File.GetCreationTimeUtc(nupkgPath);
+                    result = nupkgFile;
+                    log.LogInformation(nupkgFile.FullName);
                 }
-
-                // Download
-                var nupkgFile = await entry.DownloadNupkgAsync(outputDir, mode, token);
-
-                if (File.Exists(nupkgPath))
+                else
                 {
-                    var currentCreated = File.GetCreationTimeUtc(nupkgPath);
-
-                    // Clean up nuspec and hash if the file changed
-                    if (lastCreated < currentCreated)
-                    {
-                        result.Nupkg = nupkgFile;
-                        log.LogInformation(nupkgFile.FullName);
-                    }
+                    log.LogDebug($"Skipping. Current file is the same or newer. {lastCreated.ToString("o")} {currentCreated.ToString("o")}" + nupkgFile.FullName);
                 }
             }
-            catch (TaskCanceledException)
+            else
             {
-                // Ignore cancelled tasks
-            }
-            catch (HttpRequestException ex) when (ex.Message.Contains("404"))
-            {
-                log.LogWarning($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
-                    + Environment.NewLine
-                    + MirrorUtility.GetExceptions(ex, "\t- "));
-            }
-            catch (Exception ex)
-            {
-                log.LogError($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
-                    + Environment.NewLine
-                    + MirrorUtility.GetExceptions(ex, "\t- ").TrimEnd());
-
-                if (!ignoreErrors)
-                {
-                    throw;
-                }
+                log.LogDebug($"Nupkg skipped. " + nupkgFile.FullName);
             }
 
             return result;
         }
 
-        internal static async Task<NupkgResult> DownloadNupkgV3Async(CatalogEntry entry, string rootDir, DownloadMode mode, bool ignoreErrors, ILogger log, ILogger deepLog, CancellationToken token)
+        internal static async Task<FileInfo> DownloadNupkgV3Async(
+            CatalogEntry entry,
+            string rootDir,
+            DownloadMode mode,
+            ILogger log,
+            ILogger deepLog,
+            CancellationToken token)
         {
+            FileInfo result = null;
+
             // id/version/id.version.nupkg 
             var versionFolderResolver = new VersionFolderPathResolver(rootDir);
             var outputDir = versionFolderResolver.GetInstallPath(entry.Id, entry.Version);
@@ -379,73 +412,107 @@ namespace NuGetMirror
             var nuspecPath = versionFolderResolver.GetManifestFilePath(entry.Id, entry.Version);
             var nupkgPath = versionFolderResolver.GetPackageFilePath(entry.Id, entry.Version);
 
+            var lastCreated = DateTimeOffset.MinValue;
+
+            if (File.Exists(nupkgPath))
+            {
+                lastCreated = File.GetCreationTimeUtc(nupkgPath);
+            }
+
+            // Download
+            var nupkgFile = await entry.DownloadNupkgAsync(outputDir, mode, token);
+
+            if (File.Exists(nupkgPath))
+            {
+                var currentCreated = File.GetCreationTimeUtc(nupkgPath);
+
+                // Clean up nuspec and hash if the file changed
+                if (lastCreated < currentCreated || !File.Exists(hashPath) || !File.Exists(nuspecPath))
+                {
+                    result = nupkgFile;
+                    log.LogInformation(nupkgFile.FullName);
+
+                    FileUtility.Delete(hashPath);
+                    FileUtility.Delete(nuspecPath);
+
+                    using (var fileStream = File.OpenRead(nupkgFile.FullName))
+                    {
+                        var packageHash = Convert.ToBase64String(new CryptoHashProvider("SHA512").CalculateHash(fileStream));
+                        fileStream.Seek(0, SeekOrigin.Begin);
+
+                        // Write nuspec
+                        using (var reader = new PackageArchiveReader(fileStream))
+                        {
+                            var nuspecFile = reader.GetNuspecFile();
+                            reader.ExtractFile(nuspecFile, nuspecPath, deepLog);
+                        }
+
+                        // Write package hash
+                        File.WriteAllText(hashPath, packageHash);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        internal static async Task<NupkgResult> RunWithRetryAsync(
+            CatalogEntry entry,
+            bool ignoreErrors,
+            Func<CatalogEntry, string> getPath,
+            Func<CatalogEntry, Task<FileInfo>> action,
+            ILogger log,
+            CancellationToken token)
+        {
+            var path = getPath(entry);
+            var success = false;
             var result = new NupkgResult()
             {
                 Entry = entry
             };
 
-            var lastCreated = DateTimeOffset.MinValue;
-
-            try
+            // Retry up to 10 times.
+            for (int i = 0; !success && i < 10 && !token.IsCancellationRequested; i++)
             {
-                if (File.Exists(nupkgPath))
+                try
                 {
-                    lastCreated = File.GetCreationTimeUtc(nupkgPath);
+                    // Download
+                    result.Nupkg = await action(entry);
+
+                    success = true;
                 }
-
-                // Download
-                var nupkgFile = await entry.DownloadNupkgAsync(outputDir, mode, token);
-
-                if (File.Exists(nupkgPath))
+                catch (HttpRequestException ex) when (ex.Message.Contains("404"))
                 {
-                    var currentCreated = File.GetCreationTimeUtc(nupkgPath);
+                    log.LogWarning($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {path}"
+                        + Environment.NewLine
+                        + MirrorUtility.GetExceptions(ex, "\t- "));
 
-                    // Clean up nuspec and hash if the file changed
-                    if (lastCreated < currentCreated || !File.Exists(hashPath) || !File.Exists(nuspecPath))
+                    // Ignore missing packages, this is an issue with the feed.
+                    success = true;
+                }
+                catch (Exception ex) when (i < 9)
+                {
+                    // Log a warning and retry
+                    log.LogWarning($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {path}. Retrying..."
+                        + Environment.NewLine
+                        + MirrorUtility.GetExceptions(ex, "\t- ").TrimEnd());
+                }
+                catch (Exception ex)
+                {
+                    // Log an error and fail
+                    log.LogError($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {path}"
+                        + Environment.NewLine
+                        + MirrorUtility.GetExceptions(ex, "\t- ").TrimEnd());
+
+                    if (!ignoreErrors)
                     {
-                        result.Nupkg = nupkgFile;
-                        log.LogInformation(nupkgFile.FullName);
-
-                        FileUtility.Delete(hashPath);
-                        FileUtility.Delete(nuspecPath);
-
-                        using (var fileStream = File.OpenRead(result.Nupkg.FullName))
-                        {
-                            var packageHash = Convert.ToBase64String(new CryptoHashProvider("SHA512").CalculateHash(fileStream));
-                            fileStream.Seek(0, SeekOrigin.Begin);
-
-                            // Write nuspec
-                            using (var reader = new PackageArchiveReader(fileStream))
-                            {
-                                var nuspecFile = reader.GetNuspecFile();
-                                reader.ExtractFile(nuspecFile, nuspecPath, deepLog);
-                            }
-
-                            // Write package hash
-                            File.WriteAllText(hashPath, packageHash);
-                        }
+                        throw;
                     }
                 }
-            }
-            catch (TaskCanceledException)
-            {
-                // Ignore cancelled tasks
-            }
-            catch (HttpRequestException ex) when (ex.Message.Contains("404"))
-            {
-                log.LogWarning($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
-                    + Environment.NewLine
-                    + MirrorUtility.GetExceptions(ex, "\t- "));
-            }
-            catch (Exception ex)
-            {
-                log.LogError($"Unable to download {entry.Id} {entry.Version.ToFullString()} to {nupkgPath}"
-                    + Environment.NewLine
-                    + MirrorUtility.GetExceptions(ex, "\t- ").TrimEnd());
 
-                if (!ignoreErrors)
+                if (!success && i < 9)
                 {
-                    throw;
+                    await Task.Delay(TimeSpan.FromSeconds((i + 1) * 5));
                 }
             }
 
