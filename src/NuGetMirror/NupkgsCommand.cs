@@ -275,15 +275,15 @@ namespace NuGetMirror
 
                                 if (timeLeft.TotalHours >= 1)
                                 {
-                                    timeLeftString = $"{timeLeft.TotalHours} hours";
+                                    timeLeftString = $"{(int)timeLeft.TotalHours} hours";
                                 }
                                 else if (timeLeft.TotalMinutes >= 1)
                                 {
-                                    timeLeftString = $"{timeLeft.TotalMinutes} minutes";
+                                    timeLeftString = $"{(int)timeLeft.TotalMinutes} minutes";
                                 }
                                 else
                                 {
-                                    timeLeftString = $"{timeLeft.TotalSeconds} seconds";
+                                    timeLeftString = $"{(int)timeLeft.TotalSeconds} seconds";
                                 }
 
                                 log.LogMinimal($"Estimated time left:\t{timeLeftString}");

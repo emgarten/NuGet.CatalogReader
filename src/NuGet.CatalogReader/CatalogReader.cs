@@ -136,6 +136,17 @@ namespace NuGet.CatalogReader
         }
 
         /// <summary>
+        /// Retrieve the HttpSource used for Http requests.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<HttpSource> GetHttpSourceAsync()
+        {
+            await EnsureHttpSourceAsync();
+
+            return _httpSource;
+        }
+
+        /// <summary>
         /// Returns only the latest id/version combination for each package.
         /// Older edits and deleted packages are ignored.
         /// </summary>
@@ -258,17 +269,21 @@ namespace NuGet.CatalogReader
         }
 
         /// <summary>
-        /// Read all catalog entries.
+        /// Get catalog pages.
         /// </summary>
-        /// <param name="start">End time of the previous window. Commits exactly matching the start time will NOT be included. This is designed to take the cursor time.</param>
-        /// <param name="end">Maximum time to include. Exact matches will be included.</param>
-        /// <param name="token">Cancellation token.</param>
-        /// <returns>Entries within the start and end time. Start time is NOT included.</returns>
-        public async Task<IReadOnlyList<CatalogEntry>> GetEntriesAsync(DateTimeOffset start, DateTimeOffset end, CancellationToken token)
+        public Task<IReadOnlyList<CatalogPage>> GetPagesAsync(CancellationToken token)
+        {
+            return GetPagesAsync(DateTimeOffset.MinValue, DateTimeOffset.UtcNow, token);
+        }
+
+        /// <summary>
+        /// Get catalog pages.
+        /// </summary>
+        public async Task<IReadOnlyList<CatalogPage>> GetPagesAsync(DateTimeOffset start, DateTimeOffset end, CancellationToken token)
         {
             var index = await GetCatalogIndexAsync(token);
 
-            var pages = new List<Tuple<DateTimeOffset, Uri>>();
+            var pages = new List<CatalogPage>();
 
             if (index["items"] != null)
             {
@@ -277,8 +292,10 @@ namespace NuGet.CatalogReader
                     var dateTimeString = item.Value<string>("commitTimeStamp");
                     var dateTime = DateTimeOffset.Parse(dateTimeString);
                     var pageUri = new Uri(item["@id"].ToString());
+                    var types = item["@type"].Select(e => e.Value<string>());
+                    var commitId = item.Value<string>("commitId");
 
-                    pages.Add(new Tuple<DateTimeOffset, Uri>(dateTime, pageUri));
+                    pages.Add(new CatalogPage(pageUri, types, commitId, dateTime));
                 }
             }
             else
@@ -288,25 +305,39 @@ namespace NuGet.CatalogReader
 
             // Take all commits in the range specified
             // Also take the pages before and after, these may include commits within the specified range also.
-            var commitsInRange = pages.Where(p => p.Item1 <= end && p.Item1 > start);
-            var commitAfter = pages.Where(p => p.Item1 > end).OrderBy(p => p.Item1).FirstOrDefault();
-            var commitBefore = pages.Where(p => p.Item1 <= start).OrderByDescending(p => p.Item1).FirstOrDefault();
+            var commitsInRange = pages.Where(p => p.CommitTimeStamp <= end && p.CommitTimeStamp > start);
+            var commitAfter = pages.Where(p => p.CommitTimeStamp > end).OrderBy(p => p.CommitTimeStamp).FirstOrDefault();
+            var commitBefore = pages.Where(p => p.CommitTimeStamp <= start).OrderByDescending(p => p.CommitTimeStamp).FirstOrDefault();
 
-            var uris = new HashSet<Uri>();
+            var inRange = new HashSet<CatalogPage>();
 
             if (commitAfter != null)
             {
-                uris.Add(commitAfter.Item2);
+                inRange.Add(commitAfter);
             }
 
             if (commitBefore != null)
             {
-                uris.Add(commitBefore.Item2);
+                inRange.Add(commitBefore);
             }
 
-            uris.UnionWith(commitsInRange.Select(p => p.Item2));
+            inRange.UnionWith(commitsInRange);
 
-            var entries = await GetEntriesAsync(uris, token);
+            return inRange.OrderBy(e => e.CommitTimeStamp).ToList();
+        }
+ 
+        /// <summary>
+        /// Read all catalog entries.
+        /// </summary>
+        /// <param name="start">End time of the previous window. Commits exactly matching the start time will NOT be included. This is designed to take the cursor time.</param>
+        /// <param name="end">Maximum time to include. Exact matches will be included.</param>
+        /// <param name="token">Cancellation token.</param>
+        /// <returns>Entries within the start and end time. Start time is NOT included.</returns>
+        public async Task<IReadOnlyList<CatalogEntry>> GetEntriesAsync(DateTimeOffset start, DateTimeOffset end, CancellationToken token)
+        {
+            var pages = await GetPagesAsync(start, end, token);
+
+            var entries = await GetEntriesAsync(pages, token);
 
             return entries.Where(e => e.CommitTimeStamp > start && e.CommitTimeStamp <= end).ToList();
         }
@@ -327,7 +358,7 @@ namespace NuGet.CatalogReader
             return entries.OrderByDescending(e => e.CommitTimeStamp).ToList();
         }
 
-        private async Task<List<CatalogEntry>> GetEntriesAsync(IEnumerable<Uri> pageUris, CancellationToken token)
+        public async Task<List<CatalogEntry>> GetEntriesAsync(IEnumerable<CatalogPage> pages, CancellationToken token)
         {
             var maxThreads = Math.Max(1, MaxThreads);
             var cache = new ReferenceCache();
@@ -335,7 +366,7 @@ namespace NuGet.CatalogReader
             var entries = new List<CatalogEntry>();
             var tasks = new List<Task<JObject>>(maxThreads);
 
-            foreach (var uri in pageUris)
+            foreach (var page in pages)
             {
                 token.ThrowIfCancellationRequested();
 
@@ -344,7 +375,7 @@ namespace NuGet.CatalogReader
                     entries.AddRange(await CompleteTaskAsync(tasks, cache));
                 }
 
-                tasks.Add(_httpSource.GetJObjectAsync(uri, _cacheContext, _log, token));
+                tasks.Add(_httpSource.GetJObjectAsync(page.Uri, _cacheContext, _log, token));
             }
 
             while (tasks.Count > 0)
@@ -481,13 +512,21 @@ namespace NuGet.CatalogReader
         }
 
         /// <summary>
+        /// Return the catalog index.json Uri.
+        /// </summary>
+        public async Task<Uri> GetCatalogIndexUriAsync(CancellationToken token)
+        {
+            await EnsureServiceIndexAsync(_indexUri, token);
+
+            return _serviceIndex.GetCatalogServiceUri();
+        }
+
+        /// <summary>
         /// Return catalog/index.json
         /// </summary>
         private async Task<JObject> GetCatalogIndexAsync(CancellationToken token)
         {
-            await EnsureServiceIndexAsync(_indexUri, token);
-
-            var catalogRootUri = _serviceIndex.GetCatalogServiceUri();
+            var catalogRootUri = await GetCatalogIndexUriAsync(token);
 
             return await _httpSource.GetJObjectAsync(catalogRootUri, _cacheContext, _log, token);
         }
