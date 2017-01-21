@@ -1,6 +1,6 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <Version>1.2.0</Version>
+    <Version>1.2.1</Version>
     <Authors>emgarten</Authors>
     <ProjectUrl>https://github.com/emgarten/nuget.catalogreader</ProjectUrl>
   </PropertyGroup>
