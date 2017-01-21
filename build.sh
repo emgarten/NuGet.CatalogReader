@@ -21,7 +21,7 @@ $DOTNET --info
 # restore
 $DOTNET restore NuGet.CatalogReader.sln
 
-$DOTNET test test/NuGet.CatalogReader.Tests/NuGet.CatalogReader.csproj -f netcoreapp1.0
+$DOTNET test test/NuGet.CatalogReader.Tests/NuGet.CatalogReader.Tests.csproj -f netcoreapp1.0
 
 if [ $? -ne 0 ]; then
     echo "$testProj FAILED"
