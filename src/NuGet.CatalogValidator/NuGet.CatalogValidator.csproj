@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
   <ImportGroup>
     <Import Project="..\..\build\common.props" />
+    <Import Project="..\..\build\nuspec.props" />
   </ImportGroup>
   <PropertyGroup Condition=" '$(IsXPlat)' != 'true' ">
     <TargetFrameworks>netcoreapp1.0;net46</TargetFrameworks>
@@ -12,10 +13,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <PackageTargetFallback Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">$(PackageTargetFallback);portable-net45+win8</PackageTargetFallback>
-    <Version>1.1.0</Version>
-    <Authors>emgarten</Authors>
     <Description>NuGet v3 feed validator.</Description>
-    <ProjectUrl>https://github.com/emgarten/nuget.catalogreader</ProjectUrl>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>

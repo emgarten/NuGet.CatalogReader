@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+  <ImportGroup>
+    <Import Project="..\..\build\common.props" />
+    <Import Project="..\..\build\nuspec.props" />
+  </ImportGroup>
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;net46</TargetFrameworks>
-    <Version>1.1.0</Version>
-    <Authors>emgarten</Authors>
     <Description>NuGet v3 catalog reader.</Description>
-    <ProjectUrl>https://github.com/emgarten/nuget.catalogreader</ProjectUrl>
     <DocumentationFile>$(OutputPath)\$(AssemblyName).xml</DocumentationFile>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <NoWarn>1591;1573</NoWarn>

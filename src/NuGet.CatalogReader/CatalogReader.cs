@@ -511,6 +511,15 @@ namespace NuGet.CatalogReader
                     packageSource,
                     () => Task.FromResult((HttpHandlerResource)handlerResource),
                     NullThrottle.Instance);
+
+                if (string.IsNullOrEmpty(UserAgent.UserAgentString) 
+                    || new UserAgentStringBuilder().Build()
+                        .Equals(UserAgent.UserAgentString, StringComparison.Ordinal))
+                {
+                    // Set the user agent string if it was not already set.
+                    var userAgent = new UserAgentStringBuilder("NuGet.CatalogReader");
+                    UserAgent.SetUserAgentString(userAgent);
+                }
             }
         }
 

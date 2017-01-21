@@ -1,4 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+  <ImportGroup>
+    <Import Project="..\..\build\common.props" />
+    <Import Project="..\..\build\nuspec.props" />
+  </ImportGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp1.0</TargetFramework>

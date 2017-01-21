@@ -1,17 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Xml.Linq;
 using Microsoft.Extensions.CommandLineUtils;
 using NuGet.CatalogReader;
 using NuGet.Common;
-using NuGet.Packaging;
-using NuGet.Packaging.Core;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
-using NuGet.Versioning;
 
 namespace NuGetMirror
 {

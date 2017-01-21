@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,7 +25,7 @@ namespace NuGet.CatalogReader
                 entries: entriesArray);
         }
 
-        public static Task<IReadOnlyList<FileInfo>>  DownloadNupkgsAsync(string outputDirectory, DownloadMode mode, int maxConcurrentDownloads, CancellationToken token, IEnumerable<CatalogEntry> entries)
+        public static Task<IReadOnlyList<FileInfo>> DownloadNupkgsAsync(string outputDirectory, DownloadMode mode, int maxConcurrentDownloads, CancellationToken token, IEnumerable<CatalogEntry> entries)
         {
             var entriesArray = entries.ToArray();
 

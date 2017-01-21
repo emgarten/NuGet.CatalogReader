@@ -128,7 +128,8 @@ namespace NuGetMirror
                 SecurityProtocolType.Tls12;
 #endif
 
-            UserAgent.SetUserAgentString(new UserAgentStringBuilder("NuGetMirror"));
+            var userAgent = new UserAgentStringBuilder("NuGetMirror");
+            UserAgent.SetUserAgentString(userAgent);
         }
     }
 }

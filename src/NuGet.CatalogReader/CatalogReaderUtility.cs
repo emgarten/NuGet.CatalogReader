@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -8,7 +7,6 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NuGet.Common;
-using NuGet.Configuration;
 using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
@@ -45,7 +43,7 @@ namespace NuGet.CatalogReader
                 }
                 else if (mode == DownloadMode.SkipIfExists)
                 {
-                    // noop                    
+                    // noop
                     return;
                 }
                 else if (mode == DownloadMode.OverwriteIfNewer)
