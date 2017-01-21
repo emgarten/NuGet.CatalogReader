@@ -6,7 +6,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard1.3;net46</TargetFrameworks>
     <Description>NuGet v3 catalog reader.</Description>
-    <DocumentationFile>$(OutputPath)\$(AssemblyName).xml</DocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <NoWarn>1591;1573</NoWarn>
   </PropertyGroup>
