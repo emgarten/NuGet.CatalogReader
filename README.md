@@ -22,4 +22,4 @@ NuGetMirror.exe is a tool that uses NuGet.CatalogReader to download packages fro
 This solution uses .NET Core, get the tools [here](http://dot.net/).
 
 ### License
-[MIT License](https://github.com/emgarten/NuGet.CatalogReader/blob/master/LICENSE.md)
+[MIT License](https://raw.githubusercontent.com/emgarten/NuGet.CatalogReader/master/LICENSE)
