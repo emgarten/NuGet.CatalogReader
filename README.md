@@ -23,3 +23,26 @@ This solution uses .NET Core, get the tools [here](http://dot.net/).
 
 ### License
 [MIT License](https://raw.githubusercontent.com/emgarten/NuGet.CatalogReader/master/LICENSE)
+
+## Using NuGet.CatalogReader
+
+Discover all packages in a feed using ``GetFlattenedEntriesAsync``. To see the complete history including edits use ``GetEntriesAsync``.
+
+```csharp
+var feed = new Uri("https://api.nuget.org/v3/index.json");
+
+using (var catalog = new CatalogReader(feed))
+{
+    foreach (var entry in await catalog.GetFlattenedEntriesAsync())
+    {
+        Console.WriteLine($"[{entry.CommitTimeStamp}] {entry.Id} {entry.Version}");
+    }
+}
+```
+
+## Using NuGetMirror.exe
+
+Mirror all packages to a folder on disk.
+
+``NuGetMirror.exe nupkgs https://api.nuget.org/v3/index.json -o d:\tmp``
+
