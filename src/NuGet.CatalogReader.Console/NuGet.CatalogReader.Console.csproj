@@ -1,23 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
-  <ImportGroup>
-    <Import Project="..\..\build\common.props" />
-    <Import Project="..\..\build\nuspec.props" />
-  </ImportGroup>
+  <Import Project="..\..\build\common.props" />
+  <PropertyGroup Condition=" '$(IsXPlat)' != 'true' ">
+    <TargetFrameworks>netcoreapp1.0;net46</TargetFrameworks>
+    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(IsXPlat)' == 'true' ">
+    <TargetFrameworks>netcoreapp1.0</TargetFrameworks>
+  </PropertyGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp1.0</TargetFramework>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="**\*.cs" />
-    <EmbeddedResource Include="**\*.resx" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NETCore.App" Version="1.0.1" />
-  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NuGet.CatalogReader\NuGet.CatalogReader.csproj" />
   </ItemGroup>
+  <Import Project="..\..\build\common.targets" />
 </Project>

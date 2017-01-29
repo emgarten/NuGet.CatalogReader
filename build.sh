@@ -2,33 +2,71 @@
 
 RESULTCODE=0
 
-# increase open file limit for osx
-ulimit -n 2048
-
 # Download dotnet cli
-echo "Installing dotnet"
-mkdir -p .cli
-curl -o .cli/dotnet-install.sh https://raw.githubusercontent.com/dotnet/cli/58b0566d9ac399f5fa973315c6827a040b7aae1f/scripts/obtain/dotnet-install.sh
+DOTNET="$(pwd)/.cli/dotnet"
 
-# Run install.sh
-chmod +x .cli/dotnet-install.sh
-.cli/dotnet-install.sh -i .cli -c preview -v 1.0.0-preview4-004233
+if [ ! -f $DOTNET ]; then
+    echo "Installing dotnet"
+    mkdir -p .cli
+    curl -o .cli/dotnet-install.sh https://raw.githubusercontent.com/dotnet/cli/58b0566d9ac399f5fa973315c6827a040b7aae1f/scripts/obtain/dotnet-install.sh
+
+    # Run install.sh
+    chmod +x .cli/dotnet-install.sh
+    .cli/dotnet-install.sh -i .cli -c preview -v 1.0.0-rc4-004706
+fi
 
 # Display info
-DOTNET="$(pwd)/.cli/dotnet"
 $DOTNET --info
 
-# restore
-$DOTNET restore NuGet.CatalogReader.sln
+# clean up
+rm -rf $(pwd)/artifacts
+mkdir $(pwd)/artifacts
 
-$DOTNET test test/NuGet.CatalogReader.Tests/NuGet.CatalogReader.Tests.csproj -f netcoreapp1.0
+# restore
+$DOTNET restore $(pwd)
 
 if [ $? -ne 0 ]; then
-    echo "$testProj FAILED"
+    echo "Restore FAILED!"
+    exit 1
+fi
+
+# build
+$DOTNET build $(pwd) -c Release
+
+if [ $? -ne 0 ]; then
+    echo "Build FAILED!"
+    exit 1
+fi
+
+# run all test projects under test/
+for testProject in `find test -type f -name *.csproj`
+do
+	testDir="$(pwd)/$testProject"
+
+	echo $testDir
+
+	$DOTNET test $testDir -f netcoreapp1.0 --no-build -r $(pwd)/artifacts -c Release
+
+	if [ $? -ne 0 ]; then
+	    echo "$testProject FAILED!"
+	    RESULTCODE=1
+	fi
+done
+
+if [ $RESULTCODE -ne 0 ]; then
+    echo "tests FAILED!"
+    exit 1
+fi
+
+# pack
+$DOTNET pack $(pwd)/src/NuGet.CatalogReader/NuGet.CatalogReader.csproj --no-build -o $(pwd)/artifacts -c Release
+
+if [ $RESULTCODE -ne 0 ]; then
+    echo "pack FAILED!"
     RESULTCODE=1
 fi
 
-$DOTNET publish src/NuGetMirror/NuGetMirror.csproj -o $(pwd)/artifacts/publish/NuGetMirror -f netcoreapp1.0 --configuration release
+$DOTNET publish src/NuGetMirror/NuGetMirror.csproj -o $(pwd)/artifacts/publish/NuGetMirror -f netcoreapp1.0 -c Release --no-build
 
 if [ $? -ne 0 ]; then
     echo "publish FAILED"

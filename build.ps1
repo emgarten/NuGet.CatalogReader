@@ -30,6 +30,7 @@ $nugetMirrorExe = Join-Path $ArtifactsDir "NuGetMirror.exe"
 
 # Clear artifacts
 Remove-Item -Recurse -Force $ArtifactsDir | Out-Null
+mkdir $ArtifactsDir | Out-Null
 
 # Git commit
 $commitHash = git rev-parse HEAD | Out-String
@@ -58,13 +59,7 @@ if (-not $?)
 # Run tests
 if (-not $SkipTests)
 {
-    & $dotnetExe test (Join-Path $RepoRoot "test\$PackageId.Tests\$PackageId.Tests.csproj")
-
-    if (-not $?)
-    {
-        Write-Host "tests failed!!!"
-        exit 1
-    }
+    Run-Tests $RepoRoot $DotnetExe
 }
 
 $json608Lib  = (Join-Path $RepoRoot 'packages\Newtonsoft.Json.6.0.8\lib\net45')
