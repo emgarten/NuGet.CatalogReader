@@ -66,7 +66,7 @@ if [ $RESULTCODE -ne 0 ]; then
     RESULTCODE=1
 fi
 
-$DOTNET publish src/NuGetMirror/NuGetMirror.csproj -o $(pwd)/artifacts/publish/NuGetMirror -f netcoreapp1.0 -c Release --no-build
+$DOTNET publish src/NuGetMirror/NuGetMirror.csproj -o $(pwd)/artifacts/publish/NuGetMirror -f netcoreapp1.0 -c Release
 
 if [ $? -ne 0 ]; then
     echo "publish FAILED"
