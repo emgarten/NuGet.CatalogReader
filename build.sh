@@ -2,8 +2,11 @@
 
 RESULTCODE=0
 
+pushd $(pwd)
+
 # Download dotnet cli
 DOTNET="$(pwd)/.cli/dotnet"
+
 
 if [ ! -f $DOTNET ]; then
     echo "Installing dotnet"
@@ -12,18 +15,25 @@ if [ ! -f $DOTNET ]; then
 
     # Run install.sh
     chmod +x .cli/dotnet-install.sh
-    .cli/dotnet-install.sh -i .cli -c preview -v 1.0.0-rc4-004706
+    .cli/dotnet-install.sh -i .cli -c preview -v 1.0.1
 fi
 
 # Display info
 $DOTNET --info
 
-# clean up
-rm -rf $(pwd)/artifacts
-mkdir $(pwd)/artifacts
+# clean
+rm -r -f $(pwd)/artifacts
+
+# Clean projects and write out git info
+$DOTNET msbuild build/build.proj /t:Clean\;WriteGitInfo /p:Configuration=Release /nologo /v:m
+
+if [ $? -ne 0 ]; then
+    echo "Clean;WriteGitInfo FAILED!"
+    exit 1
+fi
 
 # restore
-$DOTNET restore $(pwd)
+$DOTNET msbuild build/build.proj /t:Restore /p:Configuration=Release /nologo /v:m
 
 if [ $? -ne 0 ]; then
     echo "Restore FAILED!"
@@ -31,46 +41,14 @@ if [ $? -ne 0 ]; then
 fi
 
 # build
-$DOTNET build $(pwd) -c Release
+$DOTNET msbuild build/build.proj /t:Build\;Test\;Pack /p:Configuration=Release /nologo /v:m
 
 if [ $? -ne 0 ]; then
     echo "Build FAILED!"
     exit 1
 fi
 
-# run all test projects under test/
-for testProject in `find test -type f -name *.csproj`
-do
-	testDir="$(pwd)/$testProject"
-
-	echo $testDir
-
-	$DOTNET test $testDir -f netcoreapp1.0 --no-build -r $(pwd)/artifacts -c Release
-
-	if [ $? -ne 0 ]; then
-	    echo "$testProject FAILED!"
-	    RESULTCODE=1
-	fi
-done
-
-if [ $RESULTCODE -ne 0 ]; then
-    echo "tests FAILED!"
-    exit 1
-fi
-
-# pack
-$DOTNET pack $(pwd)/src/NuGet.CatalogReader/NuGet.CatalogReader.csproj --no-build -o $(pwd)/artifacts -c Release
-
-if [ $RESULTCODE -ne 0 ]; then
-    echo "pack FAILED!"
-    RESULTCODE=1
-fi
-
-$DOTNET publish src/NuGetMirror/NuGetMirror.csproj -o $(pwd)/artifacts/publish/NuGetMirror -f netcoreapp1.0 -c Release
-
-if [ $? -ne 0 ]; then
-    echo "publish FAILED"
-    RESULTCODE=1
-fi
+popd
 
 exit $RESULTCODE
+

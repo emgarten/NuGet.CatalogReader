@@ -1,7 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
-  <Import Project="..\..\build\common.props" />
-  <Import Project="..\..\build\nuspec.props" />
-  <Import Project="..\..\build\docs.props" />
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common\common.props" />
   <PropertyGroup Condition=" '$(IsXPlat)' != 'true' ">
     <TargetFrameworks>netstandard1.3;net46</TargetFrameworks>
   </PropertyGroup>
@@ -12,8 +10,8 @@
     <Description>NuGet v3 catalog reader.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
-    <PackageReference Include="NuGet.Protocol.Core.v3" Version="3.5.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="$(JsonVersion)" />
+    <PackageReference Include="NuGet.Protocol.Core.v3" Version="$(NuGetPackageVersion)" />
   </ItemGroup>
-  <Import Project="..\..\build\common.targets" />
+  <Import Project="$(BuildCommonDirectory)\common.targets" />
 </Project>

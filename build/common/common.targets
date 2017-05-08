@@ -1,0 +1,149 @@
+﻿<Project ToolsVersion="15.0">
+  <!-- MSBuild generated props -->
+  <Import Project="$(MSBuildArtifactsDirectory)*.targets" />
+
+  <!-- Version -->
+  <PropertyGroup>
+    <Version Condition=" '$(Version)' == '' ">$(GitVersion)</Version>
+  </PropertyGroup>
+
+  <!-- Compiler flags -->
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'net46' ">
+    <DefineConstants>$(DefineConstants);IS_DESKTOP</DefineConstants>
+    <IsDesktop>true</IsDesktop>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp1.0' OR '$(TargetFramework)' == 'netstandard1.3' ">
+    <DefineConstants>$(DefineConstants);IS_CORECLR</DefineConstants>
+    <IsCore>true</IsCore>
+  </PropertyGroup>
+
+  <!-- Symbols -->
+  <ItemGroup Condition=" '$(PackProject)' == 'true' AND '$(SkipSourceLink)' != 'true' ">
+    <PackageReference Include="SourceLink.Create.GitHub" Version="$(SourceLinkVersion)" PrivateAssets="all" />
+    <DotNetCliToolReference Include="dotnet-sourcelink-git" Version="$(SourceLinkVersion)" />
+    <DotNetCliToolReference Include="dotnet-sourcelink" Version="$(SourceLinkVersion)" />
+  </ItemGroup>
+
+  <!-- Nupkg -->
+  <PropertyGroup Condition=" '$(PackProject)' == 'true' AND '$(SkipDocs)' != 'true' ">
+    <GenerateDocumentationFile Condition=" '$(GenerateDocumentationFile)' == '' " >true</GenerateDocumentationFile>
+    <NoWarn>1591;1573</NoWarn>
+  </PropertyGroup>
+
+  <!-- Create nupkg hook -->
+  <PropertyGroup Condition=" '$(PackProject)' == 'true' ">
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols Condition=" '$(IncludeSymbols)' == '' ">true</IncludeSymbols>
+    <PackageOutputPath>$(NupkgOutputDirectory)</PackageOutputPath>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+  </PropertyGroup>
+
+  <!-- Test projects -->
+  <PropertyGroup Condition=" '$(TestProject)' == 'true' ">
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup Condition=" '$(TestProject)' == 'true' ">
+    <!-- Disable parallel on appveyor due to an issue with xunit 2.2.0 -->
+    <None Include="$(BuildCommonDirectory)TestShared\xunit.runner.json" Condition=" '$(APPVEYOR)' != 'true' ">
+      <Link>xunit.runner.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <Compile Include="$(BuildCommonDirectory)TestShared\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TestProject)' == 'true' ">
+    <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(TestSDKVersion)" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="$(XunitRunnerVisualStudioVersion)" />
+    <PackageReference Include="xunit" Version="$(XunitVersion)" />
+  </ItemGroup>
+  
+  <!-- Sign -->
+  <PropertyGroup Condition=" '$(SignKeyPath)' != '' AND '$(TestProject)' != 'true' AND '$(IsXPlat)' != 'true' AND Exists($(SignKeyPath)) ">
+    <SignAssembly>true</SignAssembly>
+    <DelaySign>false</DelaySign>
+    <AssemblyOriginatorKeyFile>$(SignKeyPath)</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+
+  <!--
+    ============================================================
+    PackProjects
+    ============================================================
+  -->
+  <Target Name="PackProjects" Condition=" '$(PackProject)' == 'true' ">
+    <Message Text="Packing $(ProjectName)" Importance="high" />
+
+    <!-- Run pack on the project -->
+    <MSBuild
+      Projects="$(MSBuildProjectFullPath)"
+      Targets="Pack"
+      Properties="Configuration=$(Configuration);
+                  PackageOutputPath=$(NupkgOutputDirectory);
+                  NoPackageAnalysis=true;
+                  IncludeSymbols=true;
+                  IsPackable=true;">
+    </MSBuild>
+  </Target>
+
+  <!--
+    ============================================================
+    GetTestAssemblies
+    ============================================================
+  -->
+  <Target Name="GetTestAssemblies"
+          DependsOnTargets="Build;GetTargetFrameworkSet"
+          Condition=" '$(TestProject)' == 'true' AND '$(SkipTests)' != 'true' "
+          Returns="@(TestAssemblyPath)">
+    <Message Text="Discovering test assemblies for $(AssemblyName)" Importance="high" />
+
+    <!-- Execute find for all frameworks -->
+    <MSBuild
+      Projects="$(MSBuildProjectFullPath)"
+      Targets="GetTestAssembliesInner"
+      Properties="TargetFramework=%(ProjectTargetFrameworkEntries.Identity);
+                  Configuration=$(Configuration);">
+      <Output TaskParameter="TargetOutputs"
+              ItemName="TestAssemblyPath" />
+    </MSBuild>
+  </Target>
+
+  <!--
+    ============================================================
+    GetTestAssembliesInner
+    ============================================================
+  -->
+  <Target Name="GetTestAssembliesInner"
+          Returns="@(TestAssemblyPath)">
+
+    <PropertyGroup>
+      <TestAssemblyRelativePath Condition=" '$(IsDesktop)' == 'true' ">$(OutputPath)$(AssemblyName).exe</TestAssemblyRelativePath>
+      <TestAssemblyRelativePath Condition=" '$(IsDesktop)' != 'true' ">$(OutputPath)$(AssemblyName).dll</TestAssemblyRelativePath>
+    </PropertyGroup>
+
+    <ConvertToAbsolutePath Paths="$(TestAssemblyRelativePath)">
+      <Output TaskParameter="AbsolutePaths" PropertyName="AbsoluteTestAssemblyPath"/>
+    </ConvertToAbsolutePath>
+
+    <ItemGroup>
+      <TestAssemblyPath Include="$(AbsoluteTestAssemblyPath)">
+        <IsDesktop Condition=" '$(IsDesktop)' == 'true' ">true</IsDesktop>
+        <IsCore Condition=" '$(IsDesktop)' != 'true' ">true</IsCore>
+      </TestAssemblyPath>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    ============================================================
+    GetTargetFrameworkSet get all target frameworks
+    ============================================================
+  -->
+  <Target Name="GetTargetFrameworkSet" Returns="@(ProjectTargetFrameworkEntries)">
+    <!-- Find all frameworks to run on -->
+    <ItemGroup>
+      <ProjectTargetFrameworkEntries Include="$(TargetFramework);$(TargetFrameworks)" />
+    </ItemGroup>
+  </Target>
+</Project>
