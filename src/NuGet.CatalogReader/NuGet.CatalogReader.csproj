@@ -7,6 +7,10 @@
     <TargetFrameworks>netstandard1.3</TargetFrameworks>
   </PropertyGroup>
   <PropertyGroup>
+    <PackProject>true</PackProject>
+    <Shipping>true</Shipping>
+  </PropertyGroup>
+  <PropertyGroup>
     <Description>NuGet v3 catalog reader.</Description>
   </PropertyGroup>
   <ItemGroup>
