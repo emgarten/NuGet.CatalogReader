@@ -76,7 +76,7 @@ namespace NuGetMirror
 
                 if (delay.HasValue())
                 {
-                    if (Int32.TryParse(delay.Value(), out int x))
+                    if (int.TryParse(delay.Value(), out int x))
                     {
                         var delayMinutes = Math.Max(0, x);
                         delayTime = TimeSpan.FromMinutes(delayMinutes);
@@ -91,7 +91,7 @@ namespace NuGetMirror
 
                 if (maxThreadsOption.HasValue())
                 {
-                    if (Int32.TryParse(maxThreadsOption.Value(), out int x))
+                    if (int.TryParse(maxThreadsOption.Value(), out int x))
                     {
                         maxThreads = Math.Max(1, x);
                     }
@@ -106,7 +106,7 @@ namespace NuGetMirror
                 var root = new DirectoryInfo(outputPath);
                 root.Create();
 
-                FileInfo outputFilesInfo = new FileInfo(Path.Combine(root.FullName, "updatedFiles.txt"));
+                var outputFilesInfo = new FileInfo(Path.Combine(root.FullName, "updatedFiles.txt"));
                 FileUtility.Delete(outputFilesInfo.FullName);
 
                 var useV3Format = true;
@@ -268,7 +268,7 @@ namespace NuGetMirror
                                 log.LogMinimal($"Batch time:\t\t{batchTimer.Elapsed}");
                                 log.LogMinimal($"Updating cursor.json:\t{newestCommit.Value.ToString("o")}");
 
-                                double rate = batchTimer.Elapsed.TotalSeconds / Math.Max(1, done.Count);
+                                var rate = batchTimer.Elapsed.TotalSeconds / Math.Max(1, done.Count);
                                 var timeLeft = TimeSpan.FromSeconds(rate * (total - complete));
 
                                 var timeLeftString = string.Empty;
@@ -472,7 +472,7 @@ namespace NuGetMirror
             };
 
             // Retry up to 10 times.
-            for (int i = 0; !success && i < 10 && !token.IsCancellationRequested; i++)
+            for (var i = 0; !success && i < 10 && !token.IsCancellationRequested; i++)
             {
                 try
                 {
