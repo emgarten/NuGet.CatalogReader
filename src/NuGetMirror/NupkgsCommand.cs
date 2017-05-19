@@ -88,6 +88,12 @@ namespace NuGetMirror
                 }
 #endif
 
+                // Create all output folders
+                foreach (var path in storagePaths)
+                {
+                    path.Create();
+                }
+
                 var delayTime = TimeSpan.FromMinutes(10);
 
                 if (delay.HasValue())
@@ -120,8 +126,6 @@ namespace NuGetMirror
                 var batchSize = 64;
 
                 var outputRoot = new DirectoryInfo(outputPath);
-                outputRoot.Create();
-
                 var outputFilesInfo = new FileInfo(Path.Combine(outputRoot.FullName, "updatedFiles.txt"));
                 FileUtility.Delete(outputFilesInfo.FullName);
 
