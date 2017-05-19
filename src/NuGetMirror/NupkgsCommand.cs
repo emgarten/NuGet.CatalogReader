@@ -215,6 +215,8 @@ namespace NuGetMirror
 
                         // Download files
                         var tasks = new List<Task<NupkgResult>>(maxThreads);
+                        var batchTimersMax = 20;
+                        var batchTimers = new Queue<Tuple<Stopwatch, int>>(batchTimersMax);
 
                         // Download with throttling
                         while (toProcess.Count > 0)
@@ -274,6 +276,12 @@ namespace NuGetMirror
                             complete += done.Count;
                             totalDownloads += files.Count;
                             batchTimer.Stop();
+                            batchTimers.Enqueue(new Tuple<Stopwatch, int>(batchTimer, done.Count));
+
+                            while (batchTimers.Count > batchTimersMax)
+                            {
+                                batchTimers.Dequeue();
+                            }
 
                             // Update cursor
                             var newestCommit = GetNewestCommit(done, toProcess);
@@ -285,7 +293,7 @@ namespace NuGetMirror
                                 log.LogMinimal($"Batch time:\t\t{batchTimer.Elapsed}");
                                 log.LogMinimal($"Updating cursor.json:\t{newestCommit.Value.ToString("o")}");
 
-                                var rate = batchTimer.Elapsed.TotalSeconds / Math.Max(1, done.Count);
+                                var rate = batchTimers.Sum(e => e.Item1.Elapsed.TotalSeconds) / Math.Max(1, batchTimers.Sum(e => e.Item2));
                                 var timeLeft = TimeSpan.FromSeconds(rate * (total - complete));
 
                                 var timeLeftString = string.Empty;
