@@ -1,13 +1,12 @@
-﻿using System;
+using System;
+using System.Threading.Tasks;
 using NuGet.Common;
 
 namespace NuGet.CatalogReader
 {
-    public class ConsoleLogger : ILogger
+    public class ConsoleLogger : LoggerBase
     {
-        private static readonly Object _lockObj = new object();
-
-        public LogLevel VerbosityLevel { get; set; }
+        private static readonly object _lockObj = new object();
 
         public ConsoleLogger()
             : this(LogLevel.Debug)
@@ -19,59 +18,11 @@ namespace NuGet.CatalogReader
             VerbosityLevel = level;
         }
 
-        public void LogDebug(string data)
+        public override void Log(ILogMessage message)
         {
-            Log(LogLevel.Debug, data);
-        }
+            var color = GetColor(message.Level);
 
-        public void LogError(string data)
-        {
-            Log(LogLevel.Error, data, ConsoleColor.Red);
-        }
-
-        public void LogErrorSummary(string data)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void LogInformation(string data)
-        {
-            Log(LogLevel.Information, data);
-        }
-
-        public void LogInformationSummary(string data)
-        {
-            Log(LogLevel.Information, data);
-        }
-
-        public void LogMinimal(string data)
-        {
-            Log(LogLevel.Minimal, data);
-        }
-
-        public void LogSummary(string data)
-        {
-            Log(LogLevel.Information, data);
-        }
-
-        public void LogVerbose(string data)
-        {
-            Log(LogLevel.Verbose, data);
-        }
-
-        public void LogWarning(string data)
-        {
-            Log(LogLevel.Warning, data, ConsoleColor.Yellow);
-        }
-
-        private void Log(LogLevel level, string message)
-        {
-            Log(level, message, color: null);
-        }
-
-        private void Log(LogLevel level, string message, ConsoleColor? color)
-        {
-            if ((int)level >= (int)VerbosityLevel)
+            if ((int)message.Level >= (int)VerbosityLevel)
             {
                 lock (_lockObj)
                 {
@@ -80,10 +31,30 @@ namespace NuGet.CatalogReader
                         Console.ForegroundColor = color.Value;
                     }
 
-                    Console.WriteLine(message);
+                    Console.WriteLine(message.Message);
                     Console.ResetColor();
                 }
             }
+        }
+
+        public override Task LogAsync(ILogMessage message)
+        {
+            Log(message);
+
+            return Task.FromResult(0);
+        }
+
+        private static ConsoleColor? GetColor(LogLevel level)
+        {
+            switch (level)
+            {
+                case LogLevel.Error:
+                    return ConsoleColor.Red;
+                case LogLevel.Warning:
+                    return ConsoleColor.Yellow;
+            }
+
+            return null;
         }
     }
 }

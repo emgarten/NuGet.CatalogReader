@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -122,16 +122,17 @@ namespace NuGet.CatalogReader
 
             _httpSource = httpSource;
 
-            if (cacheTimeout == null)
-            {
-                cacheTimeout = TimeSpan.Zero;
-            }
-
-            _cacheContext = new HttpSourceCacheContext(_sourceCacheContext, cacheTimeout);
+            // TODO: what should retry be?
+            _cacheContext = HttpSourceCacheContext.Create(_sourceCacheContext, 5);
 
             if (_sourceCacheContext == null)
             {
-                _cacheContext = new HttpSourceCacheContext(new SourceCacheContext(), cacheTimeout);
+                var sourceCacheContext = new SourceCacheContext()
+                {
+                    MaxAge = DateTimeOffset.UtcNow.Subtract(cacheTimeout),
+                };
+
+                _cacheContext = HttpSourceCacheContext.Create(sourceCacheContext, 5);
             }
         }
 

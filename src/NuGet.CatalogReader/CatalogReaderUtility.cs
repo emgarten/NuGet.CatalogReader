@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net.Http;
 using System.Text;
@@ -98,7 +98,10 @@ namespace NuGet.CatalogReader
 
         internal static JObject LoadJson(Stream stream, bool leaveOpen)
         {
-            stream.Position = 0;
+            if (stream.CanSeek)
+            {
+                stream.Position = 0;
+            }
 
             using (var reader = new StreamReader(stream, Encoding.UTF8, false, 8192, leaveOpen))
             using (var jsonReader = new JsonTextReader(reader))
@@ -110,6 +113,27 @@ namespace NuGet.CatalogReader
 
                 return json;
             }
+        }
+
+        internal static async Task<JObject> LoadJsonAsync(Stream stream, bool leaveOpen)
+        {
+            if (stream.CanSeek)
+            {
+                stream.Position = 0;
+            }
+
+            JObject json = null;
+
+            using (var reader = new StreamReader(stream, Encoding.UTF8, false, 8192, leaveOpen))
+            using (var jsonReader = new JsonTextReader(reader))
+            {
+                // Avoid error prone json.net date handling
+                jsonReader.DateParseHandling = DateParseHandling.None;
+
+                json = await JObject.LoadAsync(jsonReader);
+            }
+
+            return json;
         }
 
         internal static void DeleteDirectoryFiles(string dirPath)

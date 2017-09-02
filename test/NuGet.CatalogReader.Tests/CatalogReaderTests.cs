@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using NuGet.Common;
@@ -179,7 +180,7 @@ namespace NuGet.CatalogReader.Tests
                     Assert.Equal("a", entry.Id);
                     Assert.Equal("1.0.0.1-RC.1.2.b0.1", entry.Version.ToNormalizedString());
                     Assert.NotEmpty(entry.CommitId);
-                    Assert.NotNull(entry.CommitTimeStamp);
+                    Assert.True(DateTimeOffset.MinValue < entry.CommitTimeStamp);
                     Assert.Equal("a.1.0.0.1-rc.1.2.b0.1", entry.FileBaseName);
                     Assert.True(entry.IsAddOrUpdate);
                     Assert.False(entry.IsDelete);
@@ -245,13 +246,13 @@ namespace NuGet.CatalogReader.Tests
                 var settings = LocalSettings.Load(sleetConfig);
                 var fileSystem = FileSystemFactory.CreateFileSystem(settings, cache, "feed");
 
-                var success = await InitCommand.RunAsync(settings, fileSystem, log);
+                var success = await InitCommand.RunAsync(settings, fileSystem, enableCatalog: true, enableSymbols: false, log: log, token: CancellationToken.None);
 
                 Assert.True(success);
 
                 if (Directory.GetFiles(nupkgFolder).Any())
                 {
-                    success = await PushCommand.RunAsync(settings, fileSystem, new List<string>() { nupkgFolder }, false, log);
+                    success = await PushCommand.PushPackages(settings, fileSystem, new List<string>() { nupkgFolder }, false, false, log, CancellationToken.None);
 
                     Assert.True(success);
                 }
@@ -269,7 +270,7 @@ namespace NuGet.CatalogReader.Tests
                     var settings = LocalSettings.Load(sleetConfig);
                     var fileSystem = FileSystemFactory.CreateFileSystem(settings, cache, "feed");
 
-                    var success = await PushCommand.RunAsync(settings, fileSystem, new List<string>() { nupkgFolder }, true, log);
+                    var success = await PushCommand.PushPackages(settings, fileSystem, new List<string>() { nupkgFolder }, true, false, log, CancellationToken.None);
 
                     Assert.True(success);
                 }

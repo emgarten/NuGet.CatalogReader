@@ -5,7 +5,7 @@ param (
     [string]$Configuration = "Release"
 )
 
-$RepoName = "NuGet.Test.Helpers"
+$RepoName = "NuGet.CatalogReader"
 $RepoRoot = $PSScriptRoot
 pushd $RepoRoot
 

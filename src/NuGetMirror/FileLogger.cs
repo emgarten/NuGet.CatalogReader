@@ -1,14 +1,12 @@
-﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using NuGet.Common;
 
 namespace NuGetMirror
 {
-    public class FileLogger : ILogger
+    public class FileLogger : LoggerBase
     {
-        private static readonly Object _lockObj = new object();
-
-        public LogLevel VerbosityLevel { get; set; }
+        private static readonly object _lockObj = new object();
 
         public bool Enabled { get; set; } = true;
 
@@ -28,61 +26,9 @@ namespace NuGetMirror
             OutputPath = outputPath;
         }
 
-        public void LogDebug(string data)
+        public override void Log(ILogMessage message)
         {
-            OutputLogger.LogDebug(data);
-
-            Log(LogLevel.Debug, data);
-        }
-
-        public void LogError(string data)
-        {
-            OutputLogger.LogError(data);
-
-            Log(LogLevel.Error, data);
-        }
-
-        public void LogErrorSummary(string data)
-        {
-            OutputLogger.LogErrorSummary(data);
-        }
-
-        public void LogInformation(string data)
-        {
-            OutputLogger.LogInformation(data);
-
-            Log(LogLevel.Information, data);
-        }
-
-        public void LogInformationSummary(string data)
-        {
-            OutputLogger.LogInformationSummary(data);
-        }
-
-        public void LogMinimal(string data)
-        {
-            OutputLogger.LogMinimal(data);
-
-            Log(LogLevel.Minimal, data);
-        }
-
-        public void LogVerbose(string data)
-        {
-            OutputLogger.LogVerbose(data);
-
-            Log(LogLevel.Verbose, data);
-        }
-
-        public void LogWarning(string data)
-        {
-            OutputLogger.LogWarning(data);
-
-            Log(LogLevel.Warning, data);
-        }
-
-        private void Log(LogLevel level, string message)
-        {
-            if ((int)level >= (int)VerbosityLevel)
+            if ((int)message.Level >= (int)VerbosityLevel)
             {
                 lock (_lockObj)
                 {
@@ -92,6 +38,13 @@ namespace NuGetMirror
                     }
                 }
             }
+        }
+
+        public override Task LogAsync(ILogMessage message)
+        {
+            Log(message);
+
+            return Task.FromResult(0);
         }
     }
 }

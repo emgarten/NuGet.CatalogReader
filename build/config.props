@@ -1,16 +1,17 @@
 ﻿<Project ToolsVersion="15.0">
   <!-- Dependency versions -->
   <PropertyGroup>
-    <NuGetPackageVersion>3.5.0</NuGetPackageVersion>
+    <NuGetPackageVersion>4.3.0</NuGetPackageVersion>
     <XunitVersion>2.2.0</XunitVersion>
     <XunitRunnerVisualStudioVersion>$(XunitVersion)</XunitRunnerVisualStudioVersion>
+    <XunitAnalyzersVersion>0.6.0</XunitAnalyzersVersion>
     <TestSDKVersion>15.0.0</TestSDKVersion>
-    <FluentAssertionsVersion>4.19.0</FluentAssertionsVersion>
-    <SourceLinkVersion>2.0.2</SourceLinkVersion>
+    <FluentAssertionsVersion>4.19.3</FluentAssertionsVersion>
+    <SourceLinkVersion>2.1.2</SourceLinkVersion>
     <CommandLineUtilsVersion>1.1.0</CommandLineUtilsVersion>
-    <NuGetTestHelpersVersion>1.0.0</NuGetTestHelpersVersion>
-    <SleetVersion>1.1.0-beta-296</SleetVersion>
-    <JsonVersion>10.0.2</JsonVersion>
+    <NuGetTestHelpersVersion>1.1.0</NuGetTestHelpersVersion>
+    <SleetVersion>2.0.0</SleetVersion>
+    <JsonVersion>10.0.3</JsonVersion>
   </PropertyGroup>
   
   <!-- Config -->
@@ -26,5 +27,6 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/emgarten/nuget.catalogreader</RepositoryUrl>
     <PackageTags>nuget nugetcatalog nugetfeed nugetv3</PackageTags>
+    <PackageIconUrl>https://emgartenstatic.blob.core.windows.net/nupkgs/icons/nuget.catalogreader.png</PackageIconUrl>
   </PropertyGroup>
 </Project>

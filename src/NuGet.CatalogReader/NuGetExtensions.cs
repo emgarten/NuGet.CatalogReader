@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -16,7 +16,7 @@ namespace NuGet.CatalogReader
 {
     internal static class NuGetExtensions
     {
-        internal static async Task<JObject> GetJObjectAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
+        internal static Task<JObject> GetJObjectAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
         {
             var cacheKey = GetHashKey(uri);
 
@@ -26,13 +26,15 @@ namespace NuGet.CatalogReader
                 IgnoreNotFounds = false
             };
 
-            using (var result = await source.GetAsync(request, log, token))
-            {
-                return CatalogReaderUtility.LoadJson(result.Stream, false);
-            }
+            return source.GetAsync(request, ProcessJson, log, token);
         }
 
-        internal static async Task<NuspecReader> GetNuspecAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
+        private static Task<JObject> ProcessJson(HttpSourceResult result)
+        {
+            return CatalogReaderUtility.LoadJsonAsync(result.Stream, false);
+        }
+
+        internal static Task<NuspecReader> GetNuspecAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
         {
             var cacheKey = GetHashKey(uri);
 
@@ -48,11 +50,15 @@ namespace NuGet.CatalogReader
                 }
             };
 
-            var result = await source.GetAsync(request, log, token);
-            return new NuspecReader(result.Stream);
+            return source.GetAsync(request, ProcessNuspec, log, token);
         }
 
-        internal static async Task<HttpSourceResult> GetNupkgAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
+        private static Task<NuspecReader> ProcessNuspec(HttpSourceResult result)
+        {
+            return Task.FromResult(new NuspecReader(result.Stream));
+        }
+
+        internal static Task<HttpSourceResult> GetNupkgAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
         {
             var cacheKey = GetHashKey(uri);
 
@@ -68,21 +74,25 @@ namespace NuGet.CatalogReader
                 }
             };
 
-            var result = await source.GetAsync(request, log, token);
-            return result;
+            return source.GetAsync(request, ProcessResult, log, token);
         }
 
-        internal static async Task<HttpSourceResult> GetStreamAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
+        private static Task<HttpSourceResult> ProcessResult(HttpSourceResult result)
         {
-            var cacheKey = GetHashKey(uri);
-
-            var request = new HttpSourceCachedRequest(uri.AbsoluteUri, cacheKey, cacheContext)
-            {
-                IgnoreNotFounds = false
-            };
-
-            return await source.GetAsync(request, log, token);
+            return Task.FromResult(result);
         }
+
+        //internal static async Task<HttpSourceResult> GetStreamAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
+        //{
+        //    var cacheKey = GetHashKey(uri);
+
+        //    var request = new HttpSourceCachedRequest(uri.AbsoluteUri, cacheKey, cacheContext)
+        //    {
+        //        IgnoreNotFounds = false
+        //    };
+
+        //    return await source.GetAsync(request, log, token);
+        //}
 
         private static string GetHashKey(Uri uri)
         {
@@ -110,7 +120,7 @@ namespace NuGet.CatalogReader
 
         internal static Uri GetCatalogServiceUri(this ServiceIndexResourceV3 serviceIndex, string[] types)
         {
-            var uris = serviceIndex[types];
+            var uris = serviceIndex.GetServiceEntryUris(types);
 
             if (uris.Count < 1)
             {

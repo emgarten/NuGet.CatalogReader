@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -62,7 +62,7 @@ namespace NuGet.CatalogValidator
 
                 if (delay.HasValue())
                 {
-                    if (Int32.TryParse(delay.Value(), out int x))
+                    if (int.TryParse(delay.Value(), out int x))
                     {
                         var delayMinutes = Math.Max(0, x);
                         delayTime = TimeSpan.FromMinutes(delayMinutes);
@@ -77,7 +77,7 @@ namespace NuGet.CatalogValidator
 
                 if (maxThreadsOption.HasValue())
                 {
-                    if (Int32.TryParse(maxThreadsOption.Value(), out int x))
+                    if (int.TryParse(maxThreadsOption.Value(), out int x))
                     {
                         maxThreads = Math.Max(1, x);
                     }
@@ -169,7 +169,7 @@ namespace NuGet.CatalogValidator
                         log.LogMinimal($"Processed:\t\t{complete} / {total}");
                         log.LogMinimal($"Batch time:\t\t{batchTimer.Elapsed}");
 
-                        double rate = batchTimer.Elapsed.TotalSeconds / Math.Max(1, batchCount);
+                        var rate = batchTimer.Elapsed.TotalSeconds / Math.Max(1, batchCount);
                         var timeLeft = TimeSpan.FromSeconds(rate * (total - complete));
 
                         var timeLeftString = string.Empty;
@@ -247,7 +247,7 @@ namespace NuGet.CatalogValidator
 
         private static async Task<HttpStatusCode> GetStatusCodeAsync(Uri uri, HttpClient httpClient, ILogger log, CancellationToken token)
         {
-            for (int i = 0; i < 5; i++)
+            for (var i = 0; i < 5; i++)
             {
                 try
                 {

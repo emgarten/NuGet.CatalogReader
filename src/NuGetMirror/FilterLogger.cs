@@ -1,13 +1,12 @@
-﻿using System;
+using System;
+using System.Threading.Tasks;
 using NuGet.Common;
 
 namespace NuGetMirror
 {
-    public class FilterLogger : ILogger
+    public class FilterLogger : LoggerBase
     {
         public bool Enabled { get; set; } = true;
-
-        public LogLevel VerbosityLevel { get; set; }
 
         public ILogger OutputLogger { get; }
 
@@ -22,67 +21,22 @@ namespace NuGetMirror
             OutputLogger = output;
         }
 
-        public void LogDebug(string data)
+        public override void Log(ILogMessage message)
         {
-            if (Enabled && (int)LogLevel.Debug >= (int)VerbosityLevel)
+            if (Enabled && (int)message.Level >= (int)VerbosityLevel)
             {
-                OutputLogger.LogDebug(data);
+                OutputLogger.Log(message);
             }
         }
 
-        public void LogError(string data)
+        public override Task LogAsync(ILogMessage message)
         {
-            if (Enabled && (int)LogLevel.Error >= (int)VerbosityLevel)
+            if (Enabled && (int)message.Level >= (int)VerbosityLevel)
             {
-                OutputLogger.LogError(data);
+                return OutputLogger.LogAsync(message);
             }
-        }
 
-        public void LogErrorSummary(string data)
-        {
-            // Noop
-        }
-
-        public void LogInformation(string data)
-        {
-            if (Enabled && (int)LogLevel.Information >= (int)VerbosityLevel)
-            {
-                OutputLogger.LogInformation(data);
-            }
-        }
-
-        public void LogInformationSummary(string data)
-        {
-            // Noop
-        }
-
-        public void LogMinimal(string data)
-        {
-            if (Enabled && (int)LogLevel.Minimal >= (int)VerbosityLevel)
-            {
-                OutputLogger.LogMinimal(data);
-            }
-        }
-
-        public void LogSummary(string data)
-        {
-            // Noop
-        }
-
-        public void LogVerbose(string data)
-        {
-            if (Enabled && (int)LogLevel.Verbose >= (int)VerbosityLevel)
-            {
-                OutputLogger.LogVerbose(data);
-            }
-        }
-
-        public void LogWarning(string data)
-        {
-            if (Enabled && (int)LogLevel.Warning >= (int)VerbosityLevel)
-            {
-                OutputLogger.LogWarning(data);
-            }
+            return Task.FromResult(0);
         }
     }
 }
