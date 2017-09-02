@@ -82,18 +82,6 @@ namespace NuGet.CatalogReader
             return Task.FromResult(result);
         }
 
-        //internal static async Task<HttpSourceResult> GetStreamAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
-        //{
-        //    var cacheKey = GetHashKey(uri);
-
-        //    var request = new HttpSourceCachedRequest(uri.AbsoluteUri, cacheKey, cacheContext)
-        //    {
-        //        IgnoreNotFounds = false
-        //    };
-
-        //    return await source.GetAsync(request, log, token);
-        //}
-
         private static string GetHashKey(Uri uri)
         {
             return uri.AbsolutePath.Replace("/", "_").Replace("\\", "_").Replace(":", "_");
