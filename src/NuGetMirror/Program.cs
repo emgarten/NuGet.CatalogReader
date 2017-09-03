@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -67,11 +67,10 @@ namespace NuGetMirror
             app.OnExecute(() =>
             {
                 app.ShowHelp();
-
-                return 0;
+                return 1;
             });
 
-            var exitCode = 0;
+            var exitCode = 1;
 
             try
             {
@@ -83,8 +82,6 @@ namespace NuGetMirror
             }
             catch (Exception ex)
             {
-                exitCode = 1;
-
                 LogException(ex, log);
             }
 
@@ -109,7 +106,6 @@ namespace NuGetMirror
 
         private static void Configure()
         {
-#if IS_DESKTOP
             // Set connection limit
             if (!RuntimeEnvironmentHelper.IsMono)
             {
@@ -126,7 +122,6 @@ namespace NuGetMirror
                 SecurityProtocolType.Tls |
                 SecurityProtocolType.Tls11 |
                 SecurityProtocolType.Tls12;
-#endif
 
             var userAgent = new UserAgentStringBuilder("NuGetMirror");
             UserAgent.SetUserAgentString(userAgent);

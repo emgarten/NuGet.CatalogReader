@@ -22,4 +22,47 @@
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
   <Import Project="$(BuildCommonDirectory)\common.targets" />
+
+  <!--
+    ============================================================
+    Copy dotnet-NuGetMirror assemblies, these are used by the nuspec later
+    ============================================================
+  -->
+  <Target Name="PublishToolFolder" BeforeTargets="PackProjects" DependsOnTargets="Build">
+
+    <PropertyGroup>
+      <PublishToolDirectory>$(ArtifactsDirectory)dotnettoolassemblies\$(AssemblyName)\</PublishToolDirectory>
+      <PublishToolInputDirectory>$(ArtifactsDirectory)proj\$(AssemblyName)\bin\$(Configuration)\netcoreapp2.0\</PublishToolInputDirectory>
+      <PublishToolInputDirectory Condition=" '$(IsXPlat)' != 'true' ">$(PublishToolInputDirectory)win7-x64\</PublishToolInputDirectory>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(PublishToolDirectory)" />
+
+    <ItemGroup>
+      <PublishFiles Include="$(PublishToolInputDirectory)$(AssemblyName).dll" />
+      <PublishFiles Include="$(PublishToolInputDirectory)$(AssemblyName).runtimeconfig.json" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(PublishFiles)" DestinationFolder="$(PublishToolDirectory)" />
+
+  </Target>
+
+  <!--
+    ============================================================
+    Create NuGetMirror and NuGetMirrorDotnetTool
+    ============================================================
+  -->
+  <Target Name="PackProjects">
+    <PropertyGroup>
+      <MergedExePath>$(PublishOutputDirectory)$(AssemblyName).exe</MergedExePath>
+      <MergedExePathExists Condition="Exists($(MergedExePath))">true</MergedExePathExists>
+      <NuspecProperties>version=$(Version);configuration=$(Configuration)</NuspecProperties>
+    </PropertyGroup>
+
+    <Error Condition=" '$(IsXPlat)' != 'true' AND '$(MergedExePathExists)' != 'true' " Text="Missing $(MergedExePath)" />
+
+    <!-- Pack NuGetMirror -->
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Pack" Condition=" '$(IsXPlat)' != 'true' " Properties="Configuration=$(Configuration);&#xD;&#xA;                         PackageOutputPath=$(NupkgOutputDirectory);&#xD;&#xA;                         NoPackageAnalysis=true;&#xD;&#xA;                         IncludeSymbols=false;&#xD;&#xA;                         IsTool=true;&#xD;&#xA;                         NuspecFile=NuGetMirror.nuspec;&#xD;&#xA;                         NuspecProperties=$(NuspecProperties)">
+    </MSBuild>
+  </Target>
 </Project>
