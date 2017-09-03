@@ -37,7 +37,7 @@ namespace NuGetMirror
             // Always pass the message to the inner logger.
             OutputLogger.Log(message);
 
-            if ((int)message.Level >= (int)VerbosityLevel)
+            if ((int)message.Level >= (int)FileLoggerVerbosity)
             {
                 lock (_lockObj)
                 {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
@@ -11,7 +11,7 @@ using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using Sleet;
 
-namespace NuGet.CatalogReader.Tests
+namespace Test.Common
 {
     /// <summary>
     /// HttpSource -> PhysicalFileSystem adapter
@@ -76,22 +76,11 @@ namespace NuGet.CatalogReader.Tests
                 _messageHandler = new TestMessageHandler(fileSystem);
             }
 
-            public override HttpClientHandler ClientHandler
-            {
-                get
-                {
+            public override HttpClientHandler ClientHandler =>
                     // should not be used!
-                    return new HttpClientHandler();
-                }
-            }
+                    new HttpClientHandler();
 
-            public override HttpMessageHandler MessageHandler
-            {
-                get
-                {
-                    return _messageHandler;
-                }
-            }
+            public override HttpMessageHandler MessageHandler => _messageHandler;
         }
 
         private class TestMessageHandler : HttpMessageHandler

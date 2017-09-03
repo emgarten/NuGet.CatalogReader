@@ -19,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuGetMirror.Tests", "test\N
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuGet.CatalogValidator", "src\NuGet.CatalogValidator\NuGet.CatalogValidator.csproj", "{7B9B96C8-72F1-485E-B5D7-B4503EE652DD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.Common", "test\Test.Common\Test.Common.csproj", "{67598340-88AA-4253-A474-D451A9969792}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -101,6 +103,18 @@ Global
 		{7B9B96C8-72F1-485E-B5D7-B4503EE652DD}.Release|x64.Build.0 = Release|Any CPU
 		{7B9B96C8-72F1-485E-B5D7-B4503EE652DD}.Release|x86.ActiveCfg = Release|Any CPU
 		{7B9B96C8-72F1-485E-B5D7-B4503EE652DD}.Release|x86.Build.0 = Release|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Debug|x64.Build.0 = Debug|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Debug|x86.Build.0 = Debug|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Release|Any CPU.Build.0 = Release|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Release|x64.ActiveCfg = Release|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Release|x64.Build.0 = Release|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Release|x86.ActiveCfg = Release|Any CPU
+		{67598340-88AA-4253-A474-D451A9969792}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -112,6 +126,7 @@ Global
 		{70795F5F-6E89-4763-9DFA-376DE0FA995D} = {4819355A-91FB-46EF-8026-E08475D0389D}
 		{F6F069E3-1899-4A60-A78A-7E8D9E933F8C} = {067CFB93-692F-4994-A99B-C79665367768}
 		{7B9B96C8-72F1-485E-B5D7-B4503EE652DD} = {4819355A-91FB-46EF-8026-E08475D0389D}
+		{67598340-88AA-4253-A474-D451A9969792} = {067CFB93-692F-4994-A99B-C79665367768}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A0606943-BE3E-49D3-9262-186470BB9CD0}

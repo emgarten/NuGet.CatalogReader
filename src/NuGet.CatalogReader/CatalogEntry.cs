@@ -145,6 +145,14 @@ namespace NuGet.CatalogReader
         public async Task<Stream> GetNupkgAsync(CancellationToken token)
         {
             var result = await _getNupkg(NupkgUri, token);
+
+            if (result.Stream != null)
+            {
+                // Use the stream if it exists
+                return result.Stream;
+            }
+
+            // Open the cache file if the stream does not exist.
             return File.OpenRead(result.CacheFile);
         }
 

@@ -19,14 +19,14 @@ namespace NuGetMirror
     /// <summary>
     /// Mirror a feed to disk as a folder of nupkgs.
     /// </summary>
-    internal static class MirrorUtility
+    public static class MirrorUtility
     {
         private const string CursorFile = "cursor.json";
-        
+
         /// <summary>
         /// cursor.json path
         /// </summary>
-        internal static FileInfo GetCursorFile(DirectoryInfo root)
+        public static FileInfo GetCursorFile(DirectoryInfo root)
         {
             return new FileInfo(Path.Combine(root.FullName, CursorFile));
         }
@@ -35,7 +35,7 @@ namespace NuGetMirror
         /// Load cursor.json if it exists.
         /// If it doesn't exist MinTime is returned.
         /// </summary>
-        internal static DateTimeOffset LoadCursor(DirectoryInfo root)
+        public static DateTimeOffset LoadCursor(DirectoryInfo root)
         {
             var file = GetCursorFile(root);
 
@@ -64,7 +64,7 @@ namespace NuGetMirror
         /// <summary>
         /// Write cursor.json to disk.
         /// </summary>
-        internal static void SaveCursor(DirectoryInfo root, DateTimeOffset time)
+        public static void SaveCursor(DirectoryInfo root, DateTimeOffset time)
         {
             var file = GetCursorFile(root);
 

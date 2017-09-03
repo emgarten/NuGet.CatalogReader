@@ -9,6 +9,7 @@ using NuGet.Common;
 using NuGet.Protocol.Core.Types;
 using NuGet.Test.Helpers;
 using Sleet;
+using Test.Common;
 using Xunit;
 
 namespace NuGet.CatalogReader.Tests
@@ -30,7 +31,7 @@ namespace NuGet.CatalogReader.Tests
                 Directory.CreateDirectory(feedFolder);
                 Directory.CreateDirectory(nupkgsFolder);
 
-                await CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
+                await CatalogReaderTestHelpers.CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
 
                 var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
 
@@ -69,7 +70,7 @@ namespace NuGet.CatalogReader.Tests
                 var packageA = new TestNupkg("a", "1.0.0");
                 TestNupkg.Save(nupkgsFolder, packageA);
 
-                await CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
+                await CatalogReaderTestHelpers.CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
 
                 var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
 
@@ -114,13 +115,13 @@ namespace NuGet.CatalogReader.Tests
                 TestNupkg.Save(nupkgsFolder, packageA);
 
                 // Create and push
-                await CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
+                await CatalogReaderTestHelpers.CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
 
                 // 2nd push
-                await PushPackagesAsync(workingDir, nupkgsFolder, baseUri, log);
+                await CatalogReaderTestHelpers.PushPackagesAsync(workingDir, nupkgsFolder, baseUri, log);
 
                 // 3rd push
-                await PushPackagesAsync(workingDir, nupkgsFolder, baseUri, log);
+                await CatalogReaderTestHelpers.PushPackagesAsync(workingDir, nupkgsFolder, baseUri, log);
 
                 var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
                 var httpSource = CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri);
@@ -165,7 +166,7 @@ namespace NuGet.CatalogReader.Tests
                 TestNupkg.Save(nupkgsFolder, packageA);
 
                 // Create and push
-                await CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
+                await CatalogReaderTestHelpers.CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
 
                 var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
                 var httpSource = CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri);
@@ -215,7 +216,7 @@ namespace NuGet.CatalogReader.Tests
                 TestNupkg.Save(nupkgsFolder, packageA);
 
                 // Create and push
-                await CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
+                await CatalogReaderTestHelpers.CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
 
                 var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
                 var httpSource = CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri);
@@ -236,56 +237,6 @@ namespace NuGet.CatalogReader.Tests
                     (await entry.GetRegistrationIndexUriAsync()).Should().NotBeNull();
                 }
             }
-        }
-
-        private static async Task CreateCatalogAsync(string root, string feedRoot, string nupkgFolder, Uri baseUri, ILogger log)
-        {
-            using (var cache = new LocalCache())
-            {
-                var sleetConfig = CreateSleetConfig(root, feedRoot, baseUri);
-                var settings = LocalSettings.Load(sleetConfig);
-                var fileSystem = FileSystemFactory.CreateFileSystem(settings, cache, "feed");
-
-                var success = await InitCommand.RunAsync(settings, fileSystem, enableCatalog: true, enableSymbols: false, log: log, token: CancellationToken.None);
-
-                Assert.True(success);
-
-                if (Directory.GetFiles(nupkgFolder).Any())
-                {
-                    success = await PushCommand.PushPackages(settings, fileSystem, new List<string>() { nupkgFolder }, false, false, log, CancellationToken.None);
-
-                    Assert.True(success);
-                }
-            }
-        }
-
-        private static async Task PushPackagesAsync(string root, string nupkgFolder, Uri baseUri, ILogger log)
-        {
-            var sleetConfig = Path.Combine(root, "sleet.json");
-
-            if (Directory.GetFiles(nupkgFolder).Any())
-            {
-                using (var cache = new LocalCache())
-                {
-                    var settings = LocalSettings.Load(sleetConfig);
-                    var fileSystem = FileSystemFactory.CreateFileSystem(settings, cache, "feed");
-
-                    var success = await PushCommand.PushPackages(settings, fileSystem, new List<string>() { nupkgFolder }, true, false, log, CancellationToken.None);
-
-                    Assert.True(success);
-                }
-            }
-        }
-
-        private static string CreateSleetConfig(string root, string feedRoot, Uri baseUri)
-        {
-            var path = Path.Combine(root, "sleet.json");
-
-            var json = CatalogReaderTestHelpers.CreateConfigWithLocal("feed", feedRoot, baseUri.AbsoluteUri);
-
-            File.WriteAllText(path, json.ToString());
-
-            return path;
         }
     }
 }

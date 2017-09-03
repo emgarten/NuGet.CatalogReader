@@ -1,6 +1,6 @@
-﻿using NuGet.Protocol;
+using NuGet.Protocol;
 
-namespace NuGet.CatalogReader.Tests
+namespace Test.Common
 {
     public class TestHttpSource : HttpSourceResource
     {
