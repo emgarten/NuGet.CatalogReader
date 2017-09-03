@@ -14,20 +14,29 @@ namespace NuGetMirror
 
         public string OutputPath { get; }
 
+        /// <summary>
+        /// Verbosity to filter on for the file.
+        /// </summary>
+        public LogLevel FileLoggerVerbosity { get; set; } = LogLevel.Error;
+
         public FileLogger(ILogger output, string outputPath)
-            : this(output, LogLevel.Error, outputPath)
+            : this(output, LogLevel.Debug, outputPath)
         {
         }
 
         public FileLogger(ILogger output, LogLevel level, string outputPath)
+            : base(LogLevel.Debug)
         {
-            VerbosityLevel = level;
+            FileLoggerVerbosity = level;
             OutputLogger = output;
             OutputPath = outputPath;
         }
 
         public override void Log(ILogMessage message)
         {
+            // Always pass the message to the inner logger.
+            OutputLogger.Log(message);
+
             if ((int)message.Level >= (int)VerbosityLevel)
             {
                 lock (_lockObj)

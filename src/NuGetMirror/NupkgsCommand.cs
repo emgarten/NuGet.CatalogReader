@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -37,10 +37,7 @@ namespace NuGetMirror
             var verbose = cmd.Option("--verbose", "Output additional network information.", CommandOptionType.NoValue);
             var includeIdOption = cmd.Option("-i|--include-id", "Include only these package ids or wildcards. May be provided multiple times.", CommandOptionType.MultipleValue);
             var excludeIdOption = cmd.Option("-e|--exclude-id", "Exclude these package ids or wildcards. May be provided multiple times.", CommandOptionType.MultipleValue);
-
-#if IS_DESKTOP
             var additionalOutput = cmd.Option("--additional-output", "Additional output directory for nupkgs. The output path with the most free space will be used.", CommandOptionType.MultipleValue);
-#endif 
 
             var argRoot = cmd.Argument(
                 "[root]",
@@ -81,12 +78,10 @@ namespace NuGetMirror
                     new DirectoryInfo(outputPath)
                 };
 
-#if IS_DESKTOP
                 if (additionalOutput.Values?.Any() == true)
                 {
                     storagePaths.UnionWith(additionalOutput.Values.Select(e => new DirectoryInfo(e)));
                 }
-#endif
 
                 // Create all output folders
                 foreach (var path in storagePaths)
@@ -580,7 +575,6 @@ namespace NuGetMirror
         /// </summary>
         private static long GetFreeSpace(DirectoryInfo path)
         {
-#if IS_DESKTOP
             var root = Path.GetPathRoot(path.FullName);
 
             foreach (var drive in DriveInfo.GetDrives())
@@ -590,7 +584,6 @@ namespace NuGetMirror
                     return drive.TotalFreeSpace;
                 }
             }
-#endif
             return -1;
         }
 
