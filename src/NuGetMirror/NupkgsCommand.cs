@@ -176,6 +176,9 @@ namespace NuGetMirror
 
                     using (var catalogReader = new CatalogReader(index, httpSource, cacheContext, TimeSpan.Zero, deepLogger))
                     {
+                        // Clear old cache files
+                        catalogReader.ClearCache();
+
                         // Find the most recent entry for each package in the range
                         // Order by oldest first
                         IEnumerable<CatalogEntry> entryQuery = (await catalogReader

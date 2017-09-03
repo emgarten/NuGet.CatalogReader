@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -145,7 +145,7 @@ namespace NuGet.CatalogReader
         public async Task<Stream> GetNupkgAsync(CancellationToken token)
         {
             var result = await _getNupkg(NupkgUri, token);
-            return result.Stream;
+            return File.OpenRead(result.CacheFile);
         }
 
         /// <summary>
