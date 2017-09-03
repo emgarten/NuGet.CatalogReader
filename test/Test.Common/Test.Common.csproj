@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common\test.props" />
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common\common.props" />
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
@@ -13,5 +13,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\NuGet.CatalogReader\NuGet.CatalogReader.csproj" />
   </ItemGroup>
-  
+
+  <Import Project="$(BuildCommonDirectory)\common.targets" />
 </Project>
