@@ -15,11 +15,6 @@
       <packageType name="DotnetCliTool" />
     </packageTypes>
     <dependencies>
-      <group targetFramework=".NETFramework4.6">
-        <dependency id="NuGet.Protocol" version="4.3.0" />
-        <dependency id="Newtonsoft.Json" version="10.0.3" />
-        <dependency id="NuGet.CatalogReader" version="$version$" />
-      </group>
       <group targetFramework=".NETCoreApp2.0">
         <dependency id="Microsoft.NETCore.App" version="2.0.0" />
         <dependency id="Microsoft.Extensions.CommandLineUtils" version="1.1.0" />
