@@ -41,5 +41,6 @@
     <file src="..\..\artifacts\dotnettoolassemblies\NuGetMirror\NuGetMirror.dll" target="lib\netcoreapp2.0\dotnet-nugetmirror.dll" />
     <file src="..\..\build\nupkgIncludes\runtimeconfig.json" target="lib\netcoreapp2.0\dotnet-nugetmirror.runtimeconfig.json" />
     <file src="..\..\build\nupkgIncludes\prefercliruntime" target="prefercliruntime" />
+    <file src="..\..\build\nupkgIncludes\NuGetMirror.props" target="build\NuGetMirror.props" />
   </files>
 </package>
