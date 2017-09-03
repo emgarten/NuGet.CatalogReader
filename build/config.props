@@ -2,12 +2,6 @@
   <!-- Dependency versions -->
   <PropertyGroup>
     <NuGetPackageVersion>4.3.0</NuGetPackageVersion>
-    <XunitVersion>2.2.0</XunitVersion>
-    <XunitRunnerVisualStudioVersion>$(XunitVersion)</XunitRunnerVisualStudioVersion>
-    <XunitAnalyzersVersion>0.6.0</XunitAnalyzersVersion>
-    <TestSDKVersion>15.0.0</TestSDKVersion>
-    <FluentAssertionsVersion>4.19.3</FluentAssertionsVersion>
-    <SourceLinkVersion>2.1.2</SourceLinkVersion>
     <CommandLineUtilsVersion>1.1.0</CommandLineUtilsVersion>
     <NuGetTestHelpersVersion>1.1.0</NuGetTestHelpersVersion>
     <SleetVersion>2.0.0</SleetVersion>
