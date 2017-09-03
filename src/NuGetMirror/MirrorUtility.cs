@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -109,20 +109,9 @@ namespace NuGetMirror
         internal static void SetTempRoot(this SourceCacheContext context, string path)
         {
             var folderProp = typeof(SourceCacheContext)
-               .GetProperty("GeneratedTempFolder", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+               .GetField("_generatedTempFolder", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 
-            var all = typeof(SourceCacheContext)
-               .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-
-            var members = typeof(SourceCacheContext)
-                    .GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-
-            var fields = typeof(SourceCacheContext)
-                    .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-
-            var setMember = fields.FirstOrDefault(e => e.Name == "<GeneratedTempFolder>k__BackingField");
-
-            setMember.SetValue(context, path);
+            folderProp.SetValue(context, path);
         }
     }
 }
