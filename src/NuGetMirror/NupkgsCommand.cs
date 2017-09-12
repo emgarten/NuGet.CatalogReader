@@ -38,6 +38,7 @@ namespace NuGetMirror
             var includeIdOption = cmd.Option("-i|--include-id", "Include only these package ids or wildcards. May be provided multiple times.", CommandOptionType.MultipleValue);
             var excludeIdOption = cmd.Option("-e|--exclude-id", "Exclude these package ids or wildcards. May be provided multiple times.", CommandOptionType.MultipleValue);
             var additionalOutput = cmd.Option("--additional-output", "Additional output directory for nupkgs. The output path with the most free space will be used.", CommandOptionType.MultipleValue);
+            var onlyLatestVersion = cmd.Option("--latest-only", "Include only the latest version of that package in the result", CommandOptionType.NoValue);
 
             var argRoot = cmd.Argument(
                 "[root]",
@@ -200,6 +201,11 @@ namespace NuGetMirror
 
                             entryQuery = entryQuery.Where(e =>
                                 regex.All(r => !r.IsMatch(e.Id)));
+                        }
+
+                        if (onlyLatestVersion.HasValue())
+                        {
+                            entryQuery = entryQuery.GroupBy(x => x.Id).Select(y => y.OrderByDescending(z => z.Version).First());
                         }
 
                         var toProcess = new Queue<CatalogEntry>(entryQuery.OrderBy(e => e.CommitTimeStamp));
