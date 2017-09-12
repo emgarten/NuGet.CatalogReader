@@ -248,5 +248,53 @@ namespace NuGetMirror.Tests
                 File.Exists(errorLog).Should().BeFalse();
             }
         }
+
+        [Fact]
+        public async Task GivenLatestOnlyOptionVerifyDownloadsOnlyLatest()
+        {
+            // Arrange
+            using (var cache = new LocalCache())
+            using (var cacheContext = new SourceCacheContext())
+            using (var workingDir = new TestFolder())
+            {
+                var beforeDate = DateTimeOffset.UtcNow;
+                var catalogLog = new TestLogger();
+                var log = new TestLogger();
+                var baseUri = Sleet.UriUtility.CreateUri("https://localhost:8080/testFeed/");
+                var feedFolder = Path.Combine(workingDir, "feed");
+                var nupkgsFolder = Path.Combine(workingDir, "nupkgs");
+                var nupkgsOutFolder = Path.Combine(workingDir, "nupkgsout");
+                Directory.CreateDirectory(feedFolder);
+                Directory.CreateDirectory(nupkgsFolder);
+                Directory.CreateDirectory(nupkgsOutFolder);
+
+                var packageA1 = new TestNupkg("a", "1.0.0");
+                TestNupkg.Save(nupkgsFolder, packageA1);
+                var packageA2 = new TestNupkg("a", "2.0.0");
+                TestNupkg.Save(nupkgsFolder, packageA2);
+
+                var packageB1 = new TestNupkg("b", "1.0.0");
+                TestNupkg.Save(nupkgsFolder, packageB1);
+                var packageB2 = new TestNupkg("b", "2.0.0");
+                TestNupkg.Save(nupkgsFolder, packageB2);
+
+                await CatalogReaderTestHelpers.CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, catalogLog);
+                var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
+                var httpSource = CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri);
+
+                var args = new string[] { "nupkgs", "-o", nupkgsOutFolder, feedUri.AbsoluteUri, "--delay", "0", "--latest-only" };
+                var exitCode = await NuGetMirror.Program.MainCore(args, httpSource, log);
+
+                exitCode.Should().Be(0);
+
+                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
+
+                results.Select(e => e.Identity).ShouldBeEquivalentTo(
+                    new[] {
+                        new PackageIdentity("a", NuGetVersion.Parse("2.0.0")),
+                        new PackageIdentity("b", NuGetVersion.Parse("2.0.0"))
+                    });
+            }
+        }
     }
 }
