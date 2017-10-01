@@ -21,6 +21,9 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Common\" />
+  </ItemGroup>
   <Import Project="$(BuildCommonDirectory)\common.targets" />
 
   <!--

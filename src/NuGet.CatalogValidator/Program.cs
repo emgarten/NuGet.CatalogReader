@@ -1,9 +1,7 @@
 using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Threading.Tasks;
+using Emgarten.Common;
 using Microsoft.Extensions.CommandLineUtils;
 using NuGet.Common;
 using NuGet.Protocol;
@@ -18,7 +16,7 @@ namespace NuGet.CatalogValidator
         {
             var logLevel = LogLevel.Information;
 
-            if (Environment.GetEnvironmentVariable("NuGet.CatalogValidator_DEBUG") == "1")
+            if (CmdUtils.IsDebugModeEnabled())
             {
                 logLevel = LogLevel.Debug;
             }
@@ -36,19 +34,7 @@ namespace NuGet.CatalogValidator
 
         public static Task<int> MainCore(string[] args, HttpSource httpSource, ILogger log)
         {
-#if DEBUG
-            if (args.Contains("--debug"))
-            {
-                args = args.Skip(1).ToArray();
-                while (!Debugger.IsAttached)
-                {
-                }
-
-                Debugger.Break();
-            }
-#endif
-
-            var assemblyVersion = NuGetVersion.Parse(typeof(Program).GetTypeInfo().Assembly.GetName().Version.ToString());
+            CmdUtils.LaunchDebuggerIfSet(ref args, log);
 
             var app = new CommandLineApplication()
             {
@@ -56,7 +42,7 @@ namespace NuGet.CatalogValidator
                 FullName = "nuget mirror"
             };
             app.HelpOption(Constants.HelpOption);
-            app.VersionOption("--version", assemblyVersion.ToNormalizedString());
+            app.VersionOption("--version", (new NuGetVersion(CmdUtils.GetAssemblyVersion())).ToNormalizedString());
             app.Description = "Validate a nuget v3 feed.";
 
             Configure();
@@ -66,11 +52,10 @@ namespace NuGet.CatalogValidator
             app.OnExecute(() =>
             {
                 app.ShowHelp();
-
-                return 0;
+                return 1;
             });
 
-            var exitCode = 0;
+            var exitCode = 1;
 
             try
             {
@@ -82,28 +67,10 @@ namespace NuGet.CatalogValidator
             }
             catch (Exception ex)
             {
-                exitCode = 1;
-
-                LogException(ex, log);
+                ExceptionUtils.LogException(ex, log);
             }
 
             return Task.FromResult(exitCode);
-        }
-
-        private static void LogException(Exception ex, ILogger log)
-        {
-            if (ex is AggregateException ag)
-            {
-                foreach (var inner in ag.InnerExceptions)
-                {
-                    LogException(inner, log);
-                }
-            }
-            else
-            {
-                log.LogError($"[{ex.GetType()}] {ex.Message}");
-                log.LogDebug(ex.ToString());
-            }
         }
 
         private static void Configure()

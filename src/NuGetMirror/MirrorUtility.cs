@@ -1,17 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using NuGet.CatalogReader;
 using NuGet.Common;
-using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 
 namespace NuGetMirror
@@ -76,34 +68,6 @@ namespace NuGetMirror
             };
 
             File.WriteAllText(file.FullName, json.ToString());
-        }
-
-        internal static string GetExceptions(Exception ex, string prefix)
-        {
-            var sb = new StringBuilder();
-
-            if (ex is AggregateException ag)
-            {
-                foreach (var inner in ag.InnerExceptions)
-                {
-                    sb.Append(GetExceptions(inner, prefix));
-                }
-            }
-            else
-            {
-                sb.AppendLine(prefix + ex.Message);
-            }
-
-            return sb.ToString();
-        }
-
-        internal static Regex WildcardToRegex(string pattern)
-        {
-            var s = "^" + Regex.Escape(pattern).
-                                Replace("\\*", ".*").
-                                Replace("\\?", ".") + "$";
-
-            return new Regex(s, RegexOptions.IgnoreCase);
         }
 
         internal static void SetTempRoot(this SourceCacheContext context, string path)

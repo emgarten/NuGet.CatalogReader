@@ -1,5 +1,5 @@
-using System;
 using System.Threading.Tasks;
+using Emgarten.Common;
 using NuGet.Common;
 
 namespace NuGetMirror
@@ -20,20 +20,9 @@ namespace NuGetMirror
 
         public override void Log(ILogMessage message)
         {
-            var color = GetColor(message.Level);
-
             if ((int)message.Level >= (int)VerbosityLevel)
             {
-                lock (_lockObj)
-                {
-                    if (color.HasValue)
-                    {
-                        Console.ForegroundColor = color.Value;
-                    }
-
-                    Console.WriteLine(message.Message);
-                    Console.ResetColor();
-                }
+                CmdUtils.LogToConsole(message.Level, message.Message);
             }
         }
 
@@ -42,19 +31,6 @@ namespace NuGetMirror
             Log(message);
 
             return Task.FromResult(0);
-        }
-
-        private static ConsoleColor? GetColor(LogLevel level)
-        {
-            switch (level)
-            {
-                case LogLevel.Error:
-                    return ConsoleColor.Red;
-                case LogLevel.Warning:
-                    return ConsoleColor.Yellow;
-            }
-
-            return null;
         }
     }
 }

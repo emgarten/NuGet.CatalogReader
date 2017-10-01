@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Emgarten.Common;
 using Microsoft.Extensions.CommandLineUtils;
 using NuGet.CatalogReader;
 using NuGet.Common;
@@ -39,6 +40,9 @@ namespace NuGetMirror
             var excludeIdOption = cmd.Option("-e|--exclude-id", "Exclude these package ids or wildcards. May be provided multiple times.", CommandOptionType.MultipleValue);
             var additionalOutput = cmd.Option("--additional-output", "Additional output directory for nupkgs. The output path with the most free space will be used.", CommandOptionType.MultipleValue);
             var onlyLatestVersion = cmd.Option("--latest-only", "Include only the latest version of that package in the result", CommandOptionType.NoValue);
+            var onlyStableVersion = cmd.Option("--stable-only", "Include only stable versions of that package in the result", CommandOptionType.NoValue);
+            var startOption = cmd.Option("--start", "Beginning of the commit time range. Packages commited AFTER this time will be included. (The cursor value will not be used with this option.)", CommandOptionType.SingleValue);
+            var endOption = cmd.Option("--end", "End of the commit time range. Packages commited at this time will be included.", CommandOptionType.SingleValue);
 
             var argRoot = cmd.Argument(
                 "[root]",
@@ -142,8 +146,25 @@ namespace NuGetMirror
                     }
                 }
 
-                var start = MirrorUtility.LoadCursor(outputRoot);
-                var end = DateTimeOffset.UtcNow.Subtract(delayTime);
+                DateTimeOffset start, end;
+                if (startOption.HasValue())
+                {
+                    start = DateTimeOffset.Parse(startOption.Value());
+                }
+                else
+                {
+                    start = MirrorUtility.LoadCursor(outputRoot);
+                }
+
+                if (endOption.HasValue())
+                {
+                    end = DateTimeOffset.Parse(endOption.Value());
+                }
+                else
+                {
+                    end = DateTimeOffset.UtcNow.Subtract(delayTime);
+                }
+
                 var token = CancellationToken.None;
                 var mode = DownloadMode.OverwriteIfNewer;
 
@@ -188,7 +209,7 @@ namespace NuGetMirror
                         // Remove all but includes if given
                         if (includeIdOption.HasValue())
                         {
-                            var regex = includeIdOption.Values.Select(s => MirrorUtility.WildcardToRegex(s)).ToArray();
+                            var regex = includeIdOption.Values.Select(s => PatternUtils.WildcardToRegex(s, ignoreCase: true)).ToArray();
 
                             entryQuery = entryQuery.Where(e =>
                                 regex.Any(r => r.IsMatch(e.Id)));
@@ -197,15 +218,24 @@ namespace NuGetMirror
                         // Remove all excludes if given
                         if (excludeIdOption.HasValue())
                         {
-                            var regex = excludeIdOption.Values.Select(s => MirrorUtility.WildcardToRegex(s)).ToArray();
+                            var regex = excludeIdOption.Values.Select(s => PatternUtils.WildcardToRegex(s, ignoreCase: true)).ToArray();
 
                             entryQuery = entryQuery.Where(e =>
                                 regex.All(r => !r.IsMatch(e.Id)));
                         }
 
+                        // Exclude pre-release
+                        if (onlyStableVersion.HasValue())
+                        {
+                            entryQuery = entryQuery.Where(e => !e.Version.IsPrerelease);
+                        }
+
+                        // Latest version only
                         if (onlyLatestVersion.HasValue())
                         {
-                            entryQuery = entryQuery.GroupBy(x => x.Id).Select(y => y.OrderByDescending(z => z.Version).First());
+                            entryQuery = entryQuery.GroupBy(x => x.Id, StringComparer.OrdinalIgnoreCase)
+                                .Select(y => y.OrderByDescending(z => z.Version)
+                                .First());
                         }
 
                         var toProcess = new Queue<CatalogEntry>(entryQuery.OrderBy(e => e.CommitTimeStamp));
@@ -480,7 +510,7 @@ namespace NuGetMirror
             var hashPath = versionFolderResolver.GetHashPath(entry.Id, entry.Version);
             var nuspecPath = versionFolderResolver.GetManifestFilePath(entry.Id, entry.Version);
             var nupkgPath = versionFolderResolver.GetPackageFilePath(entry.Id, entry.Version);
-            
+
             // Download
             var nupkgFile = await entry.DownloadNupkgAsync(outputDir, mode, token);
 
@@ -543,9 +573,8 @@ namespace NuGetMirror
                 }
                 catch (HttpRequestException ex) when (ex.Message.Contains("404"))
                 {
-                    log.LogWarning($"Unable to download {entry.Id} {entry.Version.ToFullString()}"
-                        + Environment.NewLine
-                        + MirrorUtility.GetExceptions(ex, "\t- "));
+                    var message = $"Unable to download {entry.Id} {entry.Version.ToFullString()}";
+                    ExceptionUtils.LogException(ex, log, LogLevel.Warning, showType: true, message: message);
 
                     // Ignore missing packages, this is an issue with the feed.
                     success = true;
@@ -553,16 +582,14 @@ namespace NuGetMirror
                 catch (Exception ex) when (i < 9)
                 {
                     // Log a warning and retry
-                    log.LogWarning($"Unable to download {entry.Id} {entry.Version.ToFullString()}. Retrying..."
-                        + Environment.NewLine
-                        + MirrorUtility.GetExceptions(ex, "\t- ").TrimEnd());
+                    var message = $"Unable to download {entry.Id} {entry.Version.ToFullString()}. Retrying...";
+                    ExceptionUtils.LogException(ex, log, LogLevel.Warning, showType: true, message: message);
                 }
                 catch (Exception ex)
                 {
                     // Log an error and fail
-                    log.LogError($"Unable to download {entry.Id} {entry.Version.ToFullString()}"
-                        + Environment.NewLine
-                        + MirrorUtility.GetExceptions(ex, "\t- ").TrimEnd());
+                    var message = $"Unable to download {entry.Id} {entry.Version.ToFullString()}";
+                    ExceptionUtils.LogException(ex, log, LogLevel.Error, showType: true, message: message);
 
                     if (!ignoreErrors)
                     {

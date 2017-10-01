@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading;
+using Emgarten.Common;
 using Microsoft.Extensions.CommandLineUtils;
 using NuGet.CatalogReader;
 using NuGet.Common;
@@ -90,8 +91,7 @@ namespace NuGetMirror
                 }
                 catch (Exception ex)
                 {
-                    log.LogError(ex.Message);
-                    log.LogDebug(ex.ToString());
+                    ExceptionUtils.LogException(ex, log);
                 }
 
                 return 1;
