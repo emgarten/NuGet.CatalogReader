@@ -1,5 +1,7 @@
 # Release Notes
 
+## 1.5.0
+
 ## 1.4.0
 * SemVer registration url support
 * --latest-only option to retrieve the latest version of each package
