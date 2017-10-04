@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using NuGet.Common;
 
-namespace Emgarten.Common
+namespace NuGet.CatalogValidator
 {
     public static class ExceptionUtils
     {

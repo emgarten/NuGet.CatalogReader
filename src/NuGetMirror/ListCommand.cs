@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading;
-using Emgarten.Common;
+using NuGetMirror;
 using Microsoft.Extensions.CommandLineUtils;
 using NuGet.CatalogReader;
 using NuGet.Common;

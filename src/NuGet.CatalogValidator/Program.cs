@@ -1,7 +1,7 @@
 using System;
 using System.Net;
 using System.Threading.Tasks;
-using Emgarten.Common;
+using NuGet.CatalogValidator;
 using Microsoft.Extensions.CommandLineUtils;
 using NuGet.Common;
 using NuGet.Protocol;

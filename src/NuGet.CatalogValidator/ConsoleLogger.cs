@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Emgarten.Common;
+using NuGet.CatalogValidator;
 using NuGet.Common;
 
 namespace NuGet.CatalogValidator

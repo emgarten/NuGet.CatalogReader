@@ -8,7 +8,7 @@ using System.Reflection;
 using Microsoft.Extensions.CommandLineUtils;
 using NuGet.Common;
 
-namespace Emgarten.Common
+namespace NuGetMirror
 {
     internal static class CmdUtils
     {

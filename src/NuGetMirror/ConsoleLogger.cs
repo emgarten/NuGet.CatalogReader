@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using Emgarten.Common;
+using NuGetMirror;
 using NuGet.Common;
 
 namespace NuGetMirror

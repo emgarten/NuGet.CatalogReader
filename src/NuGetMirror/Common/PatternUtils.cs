@@ -2,7 +2,7 @@
 
 using System.Text.RegularExpressions;
 
-namespace Emgarten.Common
+namespace NuGetMirror
 {
     internal static class PatternUtils
     {
