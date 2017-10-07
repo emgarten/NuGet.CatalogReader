@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using NuGetMirror;
-using Microsoft.Extensions.CommandLineUtils;
+using McMaster.Extensions.CommandLineUtils;
 using NuGet.CatalogReader;
 using NuGet.Common;
 using NuGet.Protocol;
