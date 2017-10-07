@@ -25,6 +25,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGetMirror.CmdExe.Tests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGetMirror.CliTool.Tests", "test\NuGetMirror.CliTool.Tests\NuGetMirror.CliTool.Tests.csproj", "{479EF678-E466-445A-A3F5-8C8C7E3FB88F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{916B2151-65C3-4CCD-A29B-D75A0D2ABEC4}"
+	ProjectSection(SolutionItems) = preProject
+		build\config.props = build\config.props
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
