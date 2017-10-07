@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="NuGet.Test.Helpers" Version="$(NuGetTestHelpersVersion)" />
     <PackageReference Include="SleetLib" Version="$(SleetVersion)" />
+    <PackageReference Include="Xunit" Version="$(XunitVersion)" />
   </ItemGroup>
 
   <ItemGroup>
