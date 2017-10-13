@@ -4,7 +4,7 @@
     <NuGetPackageVersion>4.3.0</NuGetPackageVersion>
     <CommandLineUtilsVersion>2.0.0</CommandLineUtilsVersion>
     <NuGetTestHelpersVersion>1.1.0</NuGetTestHelpersVersion>
-    <SleetVersion>2.1.0</SleetVersion>
+    <SleetVersion>2.2.0</SleetVersion>
     <JsonVersion>10.0.3</JsonVersion>
   </PropertyGroup>
   
