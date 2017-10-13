@@ -7,11 +7,11 @@
 
   <ItemGroup>
     <PackageReference Include="NuGet.Test.Helpers" Version="$(NuGetTestHelpersVersion)" />
-    <PackageReference Include="SleetLib" Version="$(SleetVersion)" />
     <PackageReference Include="Xunit" Version="$(XunitVersion)" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Sleet\src\SleetLib\SleetLib.csproj" />
     <ProjectReference Include="..\..\src\NuGet.CatalogReader\NuGet.CatalogReader.csproj" />
   </ItemGroup>
 

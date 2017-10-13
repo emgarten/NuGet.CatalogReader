@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2000
+VisualStudioVersion = 15.0.26923.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuGet.CatalogReader.Console", "src\NuGet.CatalogReader.Console\NuGet.CatalogReader.Console.csproj", "{822AB84F-71A6-4438-9344-F7E7126EBFB0}"
 EndProject
@@ -21,14 +21,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuGet.CatalogValidator", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test.Common", "test\Test.Common\Test.Common.csproj", "{67598340-88AA-4253-A474-D451A9969792}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGetMirror.CmdExe.Tests", "test\NuGetMirror.CmdExe.Tests\NuGetMirror.CmdExe.Tests.csproj", "{33715FE0-2D0D-4CD5-92CE-1D002B50F7EB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuGetMirror.CmdExe.Tests", "test\NuGetMirror.CmdExe.Tests\NuGetMirror.CmdExe.Tests.csproj", "{33715FE0-2D0D-4CD5-92CE-1D002B50F7EB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGetMirror.CliTool.Tests", "test\NuGetMirror.CliTool.Tests\NuGetMirror.CliTool.Tests.csproj", "{479EF678-E466-445A-A3F5-8C8C7E3FB88F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuGetMirror.CliTool.Tests", "test\NuGetMirror.CliTool.Tests\NuGetMirror.CliTool.Tests.csproj", "{479EF678-E466-445A-A3F5-8C8C7E3FB88F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{916B2151-65C3-4CCD-A29B-D75A0D2ABEC4}"
 	ProjectSection(SolutionItems) = preProject
 		build\config.props = build\config.props
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SleetLib", "..\Sleet\src\SleetLib\SleetLib.csproj", "{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -148,6 +150,18 @@ Global
 		{479EF678-E466-445A-A3F5-8C8C7E3FB88F}.Release|x64.Build.0 = Release|Any CPU
 		{479EF678-E466-445A-A3F5-8C8C7E3FB88F}.Release|x86.ActiveCfg = Release|Any CPU
 		{479EF678-E466-445A-A3F5-8C8C7E3FB88F}.Release|x86.Build.0 = Release|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Debug|x64.Build.0 = Debug|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Debug|x86.Build.0 = Debug|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Release|x64.ActiveCfg = Release|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Release|x64.Build.0 = Release|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Release|x86.ActiveCfg = Release|Any CPU
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -162,6 +176,7 @@ Global
 		{67598340-88AA-4253-A474-D451A9969792} = {067CFB93-692F-4994-A99B-C79665367768}
 		{33715FE0-2D0D-4CD5-92CE-1D002B50F7EB} = {067CFB93-692F-4994-A99B-C79665367768}
 		{479EF678-E466-445A-A3F5-8C8C7E3FB88F} = {067CFB93-692F-4994-A99B-C79665367768}
+		{2A42BF3C-50C2-43DD-AD0D-00F4857F966D} = {4819355A-91FB-46EF-8026-E08475D0389D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A0606943-BE3E-49D3-9262-186470BB9CD0}

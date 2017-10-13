@@ -13,15 +13,19 @@ namespace Test.Common
 {
     public static class CatalogReaderTestHelpers
     {
-        public static async Task CreateCatalogAsync(string root, string feedRoot, string nupkgFolder, Uri baseUri, ILogger log)
+        public static async Task CreateCatalogAsync(string root, string feedRoot, string nupkgFolder, Uri baseUri, int catalogPageSize, ILogger log)
         {
             using (var cache = new LocalCache())
             {
                 var sleetConfig = CreateSleetConfig(root, feedRoot, baseUri);
                 var settings = LocalSettings.Load(sleetConfig);
                 var fileSystem = FileSystemFactory.CreateFileSystem(settings, cache, "feed");
+                var feedSettings = await FeedSettingsUtility.GetSettingsOrDefault(fileSystem, log, CancellationToken.None);
+                feedSettings.CatalogEnabled = true;
+                feedSettings.SymbolsEnabled = false;
+                feedSettings.CatalogPageSize = catalogPageSize;
 
-                var success = await InitCommand.RunAsync(settings, fileSystem, enableCatalog: true, enableSymbols: false, log: log, token: CancellationToken.None);
+                var success = await InitCommand.InitAsync(settings, fileSystem, feedSettings, log, CancellationToken.None);
 
                 if (success != true)
                 {
@@ -38,6 +42,17 @@ namespace Test.Common
                     }
                 }
             }
+        }
+
+        public static Task CreateCatalogAsync(string root, string feedRoot, string nupkgFolder, Uri baseUri, ILogger log)
+        {
+            return CreateCatalogAsync(
+                root,
+                feedRoot,
+                nupkgFolder,
+                baseUri,
+                new FeedSettings().CatalogPageSize,
+                log);
         }
 
         public static async Task PushPackagesAsync(string root, string nupkgFolder, Uri baseUri, ILogger log)

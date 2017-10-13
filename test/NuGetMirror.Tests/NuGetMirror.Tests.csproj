@@ -16,6 +16,7 @@
     <PackageReference Include="SleetLib" Version="$(SleetVersion)" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Sleet\src\SleetLib\SleetLib.csproj" />
     <ProjectReference Include="..\..\src\NuGetMirror\NuGetMirror.csproj" />
     <ProjectReference Include="..\Test.Common\Test.Common.csproj" />
   </ItemGroup>
