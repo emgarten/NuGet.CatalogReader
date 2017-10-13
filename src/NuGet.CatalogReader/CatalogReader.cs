@@ -304,25 +304,39 @@ namespace NuGet.CatalogReader
                 Debug.Fail("invalid page: " + _indexUri.AbsoluteUri);
             }
 
-            // Take all commits in the range specified
-            // Also take the pages before and after, these may include commits within the specified range also.
-            var commitsInRange = pages.Where(p => p.CommitTimeStamp <= end && p.CommitTimeStamp > start);
-            var commitAfter = pages.Where(p => p.CommitTimeStamp > end).OrderBy(p => p.CommitTimeStamp).FirstOrDefault();
-            var commitBefore = pages.Where(p => p.CommitTimeStamp <= start).OrderByDescending(p => p.CommitTimeStamp).FirstOrDefault();
+            /*
+             * Suppose the following numbers represent the commit timestamps of ten packages published.
+             * Also suppose that each timestamp is distinct, for simplicity. Finally, assume page size in the
+             * catalog is two. The resulting five pages (identified by P0 .. P4) are:
+             * 
+             *   0  1  2  3  4  5  6  7  8  9
+             *   \__/  \__/  \__/  \__/  \__/
+             *    P0    P1    P2    P3    P4
+             *
+             * Suppose we want to make a query that returns 3 through 6. This API to fetch entries treats the lower
+             * time bound as exclusive and the upper time bound as inclusive. Our query can be summarized as:
+             *
+             *   (2, 6]
+             *
+             * Each page in the catalog index has an associated latest commit timestamp. That is, the timestamp of the
+             * last commit made to that page. In our example above, we need to fetch pages P1, P2 and P3. 2 (our lower
+             * bound) is greater than P0's commit timestamp 1 so we can eliminate that page and lower. 6 is less than
+             * or equal to P3's commit timestamp of 7 so we take up to that page and eliminate P4 and higher. In this
+             * example, both pages will include some data we do not care about. P1 includes 2 and P3 includes 7.
+             *
+             * Note that if the upper exactly matches a commit timestamp of a page, we still fetch the next page since
+             * it's theoretically possible for two commits to have the same timestamp.
+             */
 
-            var inRange = new HashSet<CatalogPageEntry>();
+            var commitsInRange = pages.Where(p => p.CommitTimeStamp > start && p.CommitTimeStamp <= end);
+            var commitAfter = pages.Where(p => p.CommitTimeStamp > end).OrderBy(p => p.CommitTimeStamp).FirstOrDefault();
+
+            var inRange = new HashSet<CatalogPageEntry>(commitsInRange);
 
             if (commitAfter != null)
             {
                 inRange.Add(commitAfter);
             }
-
-            if (commitBefore != null)
-            {
-                inRange.Add(commitBefore);
-            }
-
-            inRange.UnionWith(commitsInRange);
 
             return inRange.OrderBy(e => e.CommitTimeStamp).ToList();
         }

@@ -238,5 +238,62 @@ namespace NuGet.CatalogReader.Tests
                 }
             }
         }
+
+        [Fact]
+        public async Task VerifyStartTimeIsExclusiveAndEndTimeIsInclusive()
+        {
+            // Arrange
+            using (var cache = new LocalCache())
+            using (var cacheContext = new SourceCacheContext())
+            using (var workingDir = new TestFolder())
+            {
+                var log = new TestLogger();
+                var baseUri = Sleet.UriUtility.CreateUri("https://localhost:8080/testFeed/");
+                var feedFolder = Path.Combine(workingDir, "feed");
+                var nupkgsFolder = Path.Combine(workingDir, "nupkgs");
+                Directory.CreateDirectory(feedFolder);
+                Directory.CreateDirectory(nupkgsFolder);
+
+                const int packageCount = 10;
+                await CatalogReaderTestHelpers.CreateCatalogAsync(
+                    workingDir,
+                    feedFolder,
+                    nupkgsFolder,
+                    baseUri,
+                    catalogPageSize: 2,
+                    log: log);
+                
+                foreach (var i in Enumerable.Range(0, packageCount))
+                {
+                    var nupkgFolder = Path.Combine(nupkgsFolder, i.ToString());
+                    TestNupkg.Save(nupkgFolder, new TestNupkg($"Package{i}", "1.0.0"));
+                    await CatalogReaderTestHelpers.PushPackagesAsync(workingDir, nupkgFolder, baseUri, log);
+                }
+                
+                var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
+                var httpSource = CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri);
+
+                using (var catalogReader = new CatalogReader(feedUri, httpSource, cacheContext, TimeSpan.FromMinutes(1), log))
+                {
+                    var allEntries = await catalogReader.GetEntriesAsync();
+                    var timestamps = allEntries
+                        .OrderBy(x => x.CommitTimeStamp)
+                        .Select(x => x.CommitTimeStamp)
+                        .ToList();
+
+                    var start = timestamps[2];
+                    var end = timestamps[packageCount - 3];
+
+                    // Act
+                    var entries = await catalogReader.GetEntriesAsync(start, end, CancellationToken.None);
+
+                    // Assert
+                    Assert.Equal(
+                        timestamps.Skip(3).Take(5),
+                        entries.Select(x => x.CommitTimeStamp));
+                    Assert.Equal(packageCount, timestamps.Distinct().Count());
+                }
+            }
+        }
     }
 }
