@@ -313,26 +313,21 @@ namespace NuGet.CatalogReader
              *   \__/  \__/  \__/  \__/  \__/
              *    P0    P1    P2    P3    P4
              *
-             * Suppose we want to make a query that returns 3 through 7. This API to fetch entries treat the lower
+             * Suppose we want to make a query that returns 3 through 6. This API to fetch entries treat the lower
              * timebound as exclusive and the upper time bound as inclusive. Therefore, our query can be summarized as:
              *
-             *   (2, 7]
+             *   (2, 6]
              *
              * Each page is identified in the catalog index by the latest commit timestamp. That is, the commit
              * timestamp of the last commit made to that page. In our example above, we need to fetch pages 
              * P1, P2 and P3. 2 (our lower bound) is greater than P0's commit timestamp 1 so we can eliminate that page
-             * and lower. 7 is less than or equal to P3's commit timestamp of 7 so we take up to that page and
-             * eliminate P4 and higher. P1 will include some data we do not care about (2) and P3 will not in this
-             * particular case, since P3's commit timestamp exactly matches our upper bound.
-             *
-             * To implement this, we first take all of the pages whose commit timestamps fall within the lower and
-             * upper bounds.
+             * and lower. 6 is less than or equal to P3's commit timestamp of 7 so we take up to that page and
+             * eliminate P4 and higher. In this example, both pages will include some data we do not care about. P1
+             * includes 2 and P3 includes 7. If the upper exactly matches a commit timestamp of a page, we still fetch
+             * the next page since it's theoretically possible for two commits to have the same timestamp.
              */
+
             var commitsInRange = pages.Where(p => p.CommitTimeStamp > start && p.CommitTimeStamp <= end);
-            /*
-             * Then, we take the first page whose commit timestamp exceeds our upper bound. This ensures
-             * that we get all catalog items meeting our desired criteria.
-             */
             var commitAfter = pages.Where(p => p.CommitTimeStamp > end).OrderBy(p => p.CommitTimeStamp).FirstOrDefault();
 
             var inRange = new HashSet<CatalogPageEntry>(commitsInRange);
