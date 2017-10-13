@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using NuGet.Common;
+using NuGet.Packaging;
 using NuGet.Protocol.Core.Types;
 using NuGet.Test.Helpers;
 using Sleet;
@@ -92,6 +93,211 @@ namespace NuGet.CatalogReader.Tests
 
                     Assert.Equal("a", entry.Id);
                     Assert.Equal("1.0.0", entry.Version.ToNormalizedString());
+                }
+            }
+        }
+
+        [Fact]
+        public async Task VerifyDownloadModeSkipIfExists_DoesNotExist()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    // Act
+                    var fileInfo = await entry.DownloadNupkgAsync(
+                        downloadFolder,
+                        DownloadMode.SkipIfExists,
+                        CancellationToken.None);
+
+                    // Assert
+                    using (var reader = new PackageArchiveReader(fileInfo.FullName))
+                    {
+                        Assert.Equal("a", reader.NuspecReader.GetId());
+                    }
+                });
+        }
+
+        [Fact]
+        public async Task VerifyDownloadModeSkipIfExists_Exists()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var nupkgPath = Path.Combine(downloadFolder, $"{entry.FileBaseName}.nupkg");
+                    var testNupkg = TestNupkg.Create("different", "1.0.0").Save(downloadFolder);
+                    File.Move(testNupkg.FullName, nupkgPath);
+
+                    // Act
+                    var fileInfo = await entry.DownloadNupkgAsync(
+                        downloadFolder,
+                        DownloadMode.SkipIfExists,
+                        CancellationToken.None);
+
+                    // Assert
+                    using (var reader = new PackageArchiveReader(fileInfo.FullName))
+                    {
+                        Assert.Equal("different", reader.NuspecReader.GetId());
+                    }
+                });
+        }
+
+        [Fact]
+        public async Task VerifyDownloadModeOverwriteIfNewer_ExistingIsOlder()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var nupkgPath = Path.Combine(downloadFolder, $"{entry.FileBaseName}.nupkg");
+                    var testNupkg = TestNupkg.Create("different", "1.0.0").Save(downloadFolder);
+                    File.Move(testNupkg.FullName, nupkgPath);
+                    File.SetLastWriteTimeUtc(nupkgPath, DateTime.UtcNow.AddDays(-2));
+
+                    // Act
+                    var fileInfo = await entry.DownloadNupkgAsync(
+                        downloadFolder,
+                        DownloadMode.OverwriteIfNewer,
+                        CancellationToken.None);
+
+                    // Assert
+                    using (var reader = new PackageArchiveReader(fileInfo.FullName))
+                    {
+                        Assert.Equal("a", reader.NuspecReader.GetId());
+                    }
+                });
+        }
+
+        [Fact]
+        public async Task VerifyDownloadModeOverwriteIfNewer_ExistingIsNewer()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var nupkgPath = Path.Combine(downloadFolder, $"{entry.FileBaseName}.nupkg");
+                    var testNupkg = TestNupkg.Create("different", "1.0.0").Save(downloadFolder);
+                    File.Move(testNupkg.FullName, nupkgPath);
+                    File.SetLastWriteTimeUtc(nupkgPath, DateTime.UtcNow.AddDays(2));
+
+                    // Act
+                    var fileInfo = await entry.DownloadNupkgAsync(
+                        downloadFolder,
+                        DownloadMode.OverwriteIfNewer,
+                        CancellationToken.None);
+
+                    // Assert
+                    using (var reader = new PackageArchiveReader(fileInfo.FullName))
+                    {
+                        Assert.Equal("different", reader.NuspecReader.GetId());
+                    }
+                });
+        }
+
+        [Fact]
+        public async Task VerifyDownloadModeFailIfExists_DoesNotExist()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    // Act
+                    var fileInfo = await entry.DownloadNupkgAsync(
+                        downloadFolder,
+                        DownloadMode.FailIfExists,
+                        CancellationToken.None);
+
+                    // Assert
+                    using (var reader = new PackageArchiveReader(fileInfo.FullName))
+                    {
+                        Assert.Equal("a", reader.NuspecReader.GetId());
+                    }
+                });
+        }
+
+        [Fact]
+        public async Task VerifyDownloadModeFailIfExists_Exists()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var nupkgPath = Path.Combine(downloadFolder, $"{entry.FileBaseName}.nupkg");
+                    var testNupkg = TestNupkg.Create("different", "1.0.0").Save(downloadFolder);
+                    File.Move(testNupkg.FullName, nupkgPath);
+
+                    // Act & Assert
+                    await Assert.ThrowsAsync<InvalidOperationException>(() => entry.DownloadNupkgAsync(
+                        downloadFolder,
+                        DownloadMode.FailIfExists,
+                        CancellationToken.None));
+                    using (var reader = new PackageArchiveReader(nupkgPath))
+                    {
+                        Assert.Equal("different", reader.NuspecReader.GetId());
+                    }
+                });
+        }
+
+        [Fact]
+        public async Task VerifyDownloadModeForce()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var nupkgPath = Path.Combine(downloadFolder, $"{entry.FileBaseName}.nupkg");
+                    var testNupkg = TestNupkg.Create("different", "1.0.0").Save(downloadFolder);
+                    File.Move(testNupkg.FullName, nupkgPath);
+
+                    // Act
+                    var fileInfo = await entry.DownloadNupkgAsync(
+                        downloadFolder,
+                        DownloadMode.Force,
+                        CancellationToken.None);
+
+                    // Assert
+                    Assert.NotNull(fileInfo);
+                    Assert.Equal(nupkgPath, fileInfo.FullName);
+                    using (var reader = new PackageArchiveReader(nupkgPath))
+                    {
+                        Assert.Equal("a", reader.NuspecReader.GetId());
+                    }
+                });
+        }
+
+        private static async Task VerifyDownloadMode(
+            Func<string, CatalogEntry, Task> actAndAssertAsync)
+        {
+            // Arrange
+            using (var cache = new LocalCache())
+            using (var cacheContext = new SourceCacheContext())
+            using (var workingDir = new TestFolder())
+            {
+                var log = new TestLogger();
+                var baseUri = Sleet.UriUtility.CreateUri("https://localhost:8080/testFeed/");
+                var feedFolder = Path.Combine(workingDir, "feed");
+                var nupkgsFolder = Path.Combine(workingDir, "nupkgs");
+                var downloadFolder = Path.Combine(workingDir, "download");
+                Directory.CreateDirectory(feedFolder);
+                Directory.CreateDirectory(nupkgsFolder);
+                Directory.CreateDirectory(downloadFolder);
+
+                var packageA = new TestNupkg("a", "1.0.0");
+                TestNupkg.Save(nupkgsFolder, packageA);
+
+                await CatalogReaderTestHelpers.CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
+
+                var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
+
+                var httpSource = CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri);
+
+                // Act
+                using (var catalogReader = new CatalogReader(feedUri, httpSource, cacheContext, TimeSpan.FromMinutes(1), log))
+                {
+                    var entries = await catalogReader.GetEntriesAsync();
+                    var entry = entries.FirstOrDefault();
+                    await actAndAssertAsync(downloadFolder, entry);
                 }
             }
         }
