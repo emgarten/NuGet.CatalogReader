@@ -352,9 +352,7 @@ namespace NuGet.CatalogReader
         {
             var pages = await GetPageEntriesAsync(start, end, token);
 
-            var entries = await GetEntriesAsync(pages, token);
-
-            return entries.Where(e => e.CommitTimeStamp > start && e.CommitTimeStamp <= end).ToList();
+            return await GetEntriesAsync(pages, start, end, token);
         }
 
         /// <summary>
@@ -371,6 +369,13 @@ namespace NuGet.CatalogReader
             var entries = await GetEntriesAsync(start, end, token);
 
             return entries.OrderByDescending(e => e.CommitTimeStamp).ToList();
+        }
+
+        public async Task<IReadOnlyList<CatalogEntry>> GetEntriesAsync(IEnumerable<CatalogPageEntry> pages, DateTimeOffset start, DateTimeOffset end, CancellationToken token)
+        {
+            var entries = await GetEntriesAsync(pages, token);
+
+            return entries.Where(e => e.CommitTimeStamp > start && e.CommitTimeStamp <= end).ToList();
         }
 
         /// <summary>
