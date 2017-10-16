@@ -560,7 +560,7 @@ namespace NuGet.CatalogReader
 
         public void Dispose()
         {
-            _httpSource.Dispose();
+            _httpSource?.Dispose();
             _sourceCacheContext.Dispose();
         }
     }

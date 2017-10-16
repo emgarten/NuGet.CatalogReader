@@ -295,5 +295,21 @@ namespace NuGet.CatalogReader.Tests
                 }
             }
         }
+
+        [Fact]
+        public void DisposeDoesNotThrowWhenNothingHasBeenDone()
+        {
+            // Arrange
+            var baseUri = Sleet.UriUtility.CreateUri("https://localhost:8080/testFeed/");
+            var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
+
+            using (var catalogReader = new CatalogReader(feedUri))
+            {
+                // Act & Assert
+                catalogReader.Dispose();
+
+                // If this does not throw, we're good!
+            }
+        }
     }
 }
