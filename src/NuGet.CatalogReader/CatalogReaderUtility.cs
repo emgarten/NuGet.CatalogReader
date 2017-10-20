@@ -84,7 +84,10 @@ namespace NuGet.CatalogReader
         {
             try
             {
-                using (var reader = new PackageArchiveReader(file.FullName))
+                // We open the file stream directly as a workaround for:
+                // https://github.com/NuGet/Home/issues/6028
+                using (var fileStream = file.OpenRead())
+                using (var reader = new PackageArchiveReader(fileStream))
                 {
                     return reader.NuspecReader != null;
                 }
