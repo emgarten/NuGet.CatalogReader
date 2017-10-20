@@ -7,6 +7,7 @@
     <owners>emgarten</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <licenseUrl>https://github.com/emgarten/nuget.catalogreader/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/emgarten/nuget.catalogreader</projectUrl>
     <iconUrl>https://emgartenstatic.blob.core.windows.net/nupkgs/icons/nugetmirror.png</iconUrl>
     <description>NuGet v3 catalog reader.</description>
     <tags>nuget nugetcatalog nugetfeed nugetv3</tags>
