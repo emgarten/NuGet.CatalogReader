@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using NuGet.Common;
 using NuGet.Packaging.Core;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
@@ -238,7 +239,8 @@ namespace NuGetMirror.Tests
                 var args = new string[] { "nupkgs", "-o", nupkgsOutFolder, feedUri.AbsoluteUri, "--delay", "0" };
                 var exitCode = await NuGetMirror.Program.MainCore(args, httpSource, log);
 
-                exitCode.Should().Be(0);
+                var errors = log.GetMessages(LogLevel.Error);
+                exitCode.Should().Be(0, errors);
 
                 var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
 

@@ -494,10 +494,8 @@ namespace NuGet.CatalogReader.Tests
                     var entries = await catalogReader.GetEntriesAsync(start, end, CancellationToken.None);
 
                     // Assert
-                    Assert.Equal(
-                        timestamps.Skip(3).Take(5),
-                        entries.Select(x => x.CommitTimeStamp));
-                    Assert.Equal(packageCount, timestamps.Distinct().Count());
+                    packageCount.Should().Be(timestamps.Distinct().Count());
+                    timestamps.Skip(3).Take(5).Should().BeEquivalentTo(entries.Select(x => x.CommitTimeStamp));
                 }
             }
         }

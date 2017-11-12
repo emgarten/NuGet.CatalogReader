@@ -6,7 +6,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using NuGetMirror;
 using McMaster.Extensions.CommandLineUtils;
 using NuGet.CatalogReader;
 using NuGet.Common;
@@ -98,7 +97,7 @@ namespace NuGetMirror
 
                 if (delay.HasValue())
                 {
-                    if (int.TryParse(delay.Value(), out int x))
+                    if (int.TryParse(delay.Value(), out var x))
                     {
                         var delayMinutes = Math.Max(0, x);
                         delayTime = TimeSpan.FromMinutes(delayMinutes);
@@ -113,7 +112,7 @@ namespace NuGetMirror
 
                 if (maxThreadsOption.HasValue())
                 {
-                    if (int.TryParse(maxThreadsOption.Value(), out int x))
+                    if (int.TryParse(maxThreadsOption.Value(), out var x))
                     {
                         maxThreads = Math.Max(1, x);
                     }
@@ -248,7 +247,6 @@ namespace NuGetMirror
                         var totalDownloads = 0;
 
                         // Download files
-                        var tasks = new List<Task<NupkgResult>>(maxThreads);
                         var batchTimersMax = 20;
                         var batchTimers = new Queue<Tuple<Stopwatch, int>>(batchTimersMax);
 
@@ -256,24 +254,14 @@ namespace NuGetMirror
                         while (toProcess.Count > 0)
                         {
                             // Create batches
-                            var batch = new Queue<CatalogEntry>(batchSize);
+                            var batch = new Queue<Func<Task<NupkgResult>>>(batchSize);
                             var files = new List<string>();
                             var batchTimer = new Stopwatch();
                             batchTimer.Start();
 
                             while (toProcess.Count > 0 && batch.Count < batchSize)
                             {
-                                batch.Enqueue(toProcess.Dequeue());
-                            }
-
-                            while (batch.Count > 0)
-                            {
-                                if (tasks.Count == maxThreads)
-                                {
-                                    await CompleteTaskAsync(files, tasks, done);
-                                }
-
-                                var entry = batch.Dequeue();
+                                var entry = toProcess.Dequeue();
 
                                 Func<CatalogEntry, Task<FileInfo>> getNupkg = null;
 
@@ -287,23 +275,34 @@ namespace NuGetMirror
                                 }
 
                                 // Queue download task
-                                tasks.Add(Task.Run(async () => await RunWithRetryAsync(entry, ignoreErrors.HasValue(), getNupkg, log, token)));
+                                batch.Enqueue(new Func<Task<NupkgResult>>(() => RunWithRetryAsync(entry, ignoreErrors.HasValue(), getNupkg, log, token)));
                             }
 
-                            // Wait for all batch downloads
-                            while (tasks.Count > 0)
+                            // Run
+                            var results = await TaskUtils.RunAsync(batch, useTaskRun: true, maxThreads: maxThreads, token: token);
+
+                            // Process results
+                            foreach (var result in results)
                             {
-                                await CompleteTaskAsync(files, tasks, done);
-                            }
+                                var fileName = result.Nupkg?.FullName;
 
-                            files = files.Where(e => e != null).ToList();
+                                if (!string.IsNullOrEmpty(fileName))
+                                {
+                                    files.Add(fileName);
+                                }
+
+                                done.Add(result.Entry);
+                            }
 
                             // Write out new files
-                            using (var newFileWriter = new StreamWriter(new FileStream(outputFilesInfo.FullName, FileMode.Append, FileAccess.Write)))
+                            if (files.Count > 0)
                             {
-                                foreach (var file in files)
+                                using (var newFileWriter = new StreamWriter(new FileStream(outputFilesInfo.FullName, FileMode.Append, FileAccess.Write)))
                                 {
-                                    newFileWriter.WriteLine(file);
+                                    foreach (var file in files)
+                                    {
+                                        newFileWriter.WriteLine(file);
+                                    }
                                 }
                             }
 
@@ -369,14 +368,6 @@ namespace NuGetMirror
 
                 return 0;
             });
-        }
-
-        private static async Task CompleteTaskAsync(List<string> files, List<Task<NupkgResult>> tasks, List<CatalogEntry> done)
-        {
-            var task = await Task.WhenAny(tasks);
-            tasks.Remove(task);
-            files.Add(task.Result.Nupkg?.FullName);
-            done.Add(task.Result.Entry);
         }
 
         private static DateTimeOffset? GetNewestCommit(List<CatalogEntry> done, Queue<CatalogEntry> toProcess)

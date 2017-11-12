@@ -383,51 +383,28 @@ namespace NuGet.CatalogReader
         /// </summary>
         public async Task<List<CatalogEntry>> GetEntriesAsync(IEnumerable<CatalogPageEntry> pages, CancellationToken token)
         {
+            var tasks = pages.Select(page =>
+                new Func<Task<JObject>>(() =>
+                    _httpSource.GetJObjectAsync(page.Uri, _cacheContext, _log, token)));
+
             var maxThreads = Math.Max(1, MaxThreads);
             var cache = new ReferenceCache();
+            var entries = new ConcurrentBag<CatalogEntry>();
 
-            var entries = new List<CatalogEntry>();
-            var tasks = new List<Task<JObject>>(maxThreads);
+            var process = new Func<Task<JObject>, Task<bool>>(e => CompleteTaskAsync(e, cache, entries));
 
-            foreach (var page in pages)
-            {
-                token.ThrowIfCancellationRequested();
+            await TaskUtils.RunAsync(tasks,
+                useTaskRun: false,
+                maxThreads: maxThreads,
+                process: process,
+                token: token);
 
-                while (tasks.Count > maxThreads)
-                {
-                    entries.AddRange(await CompleteTaskAsync(tasks, cache));
-                }
-
-                tasks.Add(_httpSource.GetJObjectAsync(page.Uri, _cacheContext, _log, token));
-            }
-
-            while (tasks.Count > 0)
-            {
-                entries.AddRange(await CompleteTaskAsync(tasks, cache));
-            }
-
-            return entries;
+            return entries.ToList();
         }
 
-        private async Task<List<CatalogEntry>> CompleteTaskAsync(List<Task<JObject>> tasks, ReferenceCache cache)
+        private async Task<bool> CompleteTaskAsync(Task<JObject> task, ReferenceCache cache, ConcurrentBag<CatalogEntry> entries)
         {
-            var entries = new List<CatalogEntry>();
-
-            if (tasks.Count > 0)
-            {
-                var task = await Task.WhenAny(tasks);
-                var json = await task;
-                tasks.Remove(task);
-
-                entries.AddRange(GetEntriesFromJson(json, cache));
-            }
-
-            return entries;
-        }
-
-        private List<CatalogEntry> GetEntriesFromJson(JObject json, ReferenceCache cache)
-        {
-            var entries = new List<CatalogEntry>();
+            var json = await task;
 
             foreach (var item in json["items"])
             {
@@ -453,7 +430,7 @@ namespace NuGet.CatalogReader
                 entries.Add(entry);
             }
 
-            return entries;
+            return true;
         }
 
         private Func<Uri, CancellationToken, Task<JObject>> _getJson;

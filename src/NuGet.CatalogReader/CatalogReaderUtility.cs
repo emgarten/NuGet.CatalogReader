@@ -15,6 +15,12 @@ namespace NuGet.CatalogReader
 {
     internal static class CatalogReaderUtility
     {
+        private static readonly JsonLoadSettings _jsonLoadSettings = new JsonLoadSettings()
+        {
+            LineInfoHandling = LineInfoHandling.Ignore,
+            CommentHandling = CommentHandling.Ignore,
+        };
+
         internal static Task<HttpHandlerResource> GetHandlerAsync(Uri index)
         {
             return GetHandlerAsync(index, wrapper: null);
@@ -112,7 +118,7 @@ namespace NuGet.CatalogReader
                 // Avoid error prone json.net date handling
                 jsonReader.DateParseHandling = DateParseHandling.None;
 
-                var json = JObject.Load(jsonReader);
+                var json = JObject.Load(jsonReader, _jsonLoadSettings);
 
                 return json;
             }
@@ -133,7 +139,7 @@ namespace NuGet.CatalogReader
                 // Avoid error prone json.net date handling
                 jsonReader.DateParseHandling = DateParseHandling.None;
 
-                json = await JObject.LoadAsync(jsonReader);
+                json = await JObject.LoadAsync(jsonReader, _jsonLoadSettings);
             }
 
             return json;
