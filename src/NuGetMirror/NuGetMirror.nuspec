@@ -11,23 +11,16 @@
     <iconUrl>https://emgartenstatic.blob.core.windows.net/nupkgs/icons/nugetmirror.png</iconUrl>
     <description>NuGet v3 catalog reader.</description>
     <tags>nuget nugetcatalog nugetfeed nugetv3</tags>
-    <repository type="git" url="https://github.com/emgarten/nuget.catalogreader" />
+    <repository type="git" url="https://github.com/emgarten/nuget.catalogreader" branch="$branch$" commit="$commit$" />
     <packageTypes>
-      <packageType name="DotnetCliTool" />
+      <packageType name="DotnetTool" />
     </packageTypes>
-    <dependencies>
-      <group targetFramework=".netcoreapp2.1">
-        <dependency id="Microsoft.NETCore.App" version="2.0.0" />
-        <dependency id="McMaster.Extensions.CommandLineUtils" version="2.0.0" />
-        <dependency id="NuGet.CatalogReader" version="$version$" />
-      </group>
-    </dependencies>
   </metadata>
   <files>
-    <file src="..\..\artifacts\publish\NuGetMirror.exe" target="tools\" />
-    <file src="..\..\artifacts\dotnettoolassemblies\NuGetMirror\NuGetMirror.dll" target="lib\netcoreapp2.1\dotnet-nugetmirror.dll" />
-    <file src="..\..\build\nupkgIncludes\runtimeconfig.json" target="lib\netcoreapp2.1\dotnet-nugetmirror.runtimeconfig.json" />
-    <file src="..\..\build\nupkgIncludes\prefercliruntime" target="prefercliruntime" />
+    <file src="..\..\artifacts\publish\*.exe" target="tools\" />
+    <file src="..\..\artifacts\publish\netcoreapp2.1\*.dll" target="tools\netcoreapp2.1\any\" />
+    <file src="..\..\artifacts\publish\netcoreapp2.1\DotnetToolSettings.xml" target="tools\netcoreapp2.1\any\" />
+    <file src="..\..\artifacts\publish\netcoreapp2.1\NuGetMirror.runtimeconfig.json" target="tools\netcoreapp2.1\any\" />
     <file src="..\..\build\nupkgIncludes\NuGetMirror.props" target="build\NuGetMirror.props" />
   </files>
 </package>

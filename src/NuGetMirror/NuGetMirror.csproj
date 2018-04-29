@@ -1,15 +1,20 @@
-<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+<Project ToolsVersion="15.0">
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common\common.props" />
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
   <PropertyGroup Condition=" '$(IsXPlat)' != 'true' ">
     <TargetFrameworks>netcoreapp2.1;net46</TargetFrameworks>
-    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(IsXPlat)' == 'true' ">
     <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
   </PropertyGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <Description>NuGet v3 feed mirror utility.</Description>
+    <ToolCommandName>nugetmirror</ToolCommandName>
+    <PackProject>true</PackProject>
+    <PublishProject>true</PublishProject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -61,13 +66,13 @@
     <PropertyGroup>
       <MergedExePath>$(PublishOutputDirectory)$(AssemblyName).exe</MergedExePath>
       <MergedExePathExists Condition="Exists($(MergedExePath))">true</MergedExePathExists>
-      <NuspecProperties>version=$(Version);configuration=$(Configuration)</NuspecProperties>
+      <NuspecProperties>version=$(Version);configuration=$(Configuration);branch=$(RepositoryBranch);commit=$(RepositoryCommit);</NuspecProperties>
     </PropertyGroup>
 
     <Error Condition=" '$(IsXPlat)' != 'true' AND '$(MergedExePathExists)' != 'true' " Text="Missing $(MergedExePath)" />
 
-    <!-- Pack NuGetMirror -->
-    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Pack" Condition=" '$(IsXPlat)' != 'true' " Properties="Configuration=$(Configuration);&#xD;&#xA;                         PackageOutputPath=$(NupkgOutputDirectory);&#xD;&#xA;                         NoPackageAnalysis=true;&#xD;&#xA;                         IncludeSymbols=false;&#xD;&#xA;                         IsTool=true;&#xD;&#xA;                         NuspecFile=NuGetMirror.nuspec;&#xD;&#xA;                         NuspecProperties=$(NuspecProperties)">
-    </MSBuild>
+    <!-- Pack NuGetMirror with NugetMirror.exe -->
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Pack" Condition=" '$(IsXPlat)' != 'true' " Properties="Configuration=$(Configuration);&#xD;&#xA;                         PackageOutputPath=$(NupkgOutputDirectory);&#xD;&#xA;                         NoPackageAnalysis=true;&#xD;&#xA;                         IncludeSymbols=false;&#xD;&#xA;                         IsTool=true;&#xD;&#xA;                         NuspecFile=NuGetMirror.nuspec;&#xD;&#xA;                         NuspecProperties=$(NuspecProperties)" />
   </Target>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>

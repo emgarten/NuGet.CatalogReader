@@ -3,14 +3,9 @@
 
   <PropertyGroup Condition=" '$(IsXPlat)' != 'true' ">
     <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
-    <RuntimeIdentifier>win7-x64</RuntimeIdentifier>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(IsXPlat)' == 'true' ">
     <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
-  </PropertyGroup>
-  
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
   </PropertyGroup>
   
   <ItemGroup>
