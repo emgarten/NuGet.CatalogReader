@@ -35,30 +35,6 @@
 
   <!--
     ============================================================
-    Copy dotnet-NuGetMirror assemblies, these are used by the nuspec later
-    ============================================================
-  -->
-  <Target Name="PublishToolFolder" BeforeTargets="PackProjects" DependsOnTargets="Build">
-
-    <PropertyGroup>
-      <PublishToolDirectory>$(ArtifactsDirectory)dotnettoolassemblies\$(AssemblyName)\</PublishToolDirectory>
-      <PublishToolInputDirectory>$(ArtifactsDirectory)proj\$(AssemblyName)\bin\$(Configuration)\netcoreapp2.1\</PublishToolInputDirectory>
-      <PublishToolInputDirectory Condition=" '$(IsXPlat)' != 'true' ">$(PublishToolInputDirectory)win7-x64\</PublishToolInputDirectory>
-    </PropertyGroup>
-
-    <MakeDir Directories="$(PublishToolDirectory)" />
-
-    <ItemGroup>
-      <PublishFiles Include="$(PublishToolInputDirectory)$(AssemblyName).dll" />
-      <PublishFiles Include="$(PublishToolInputDirectory)$(AssemblyName).runtimeconfig.json" />
-    </ItemGroup>
-
-    <Copy SourceFiles="@(PublishFiles)" DestinationFolder="$(PublishToolDirectory)" />
-
-  </Target>
-
-  <!--
-    ============================================================
     Create NuGetMirror and NuGetMirrorDotnetTool
     ============================================================
   -->
