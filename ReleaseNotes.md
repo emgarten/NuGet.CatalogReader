@@ -1,6 +1,11 @@
 # Release Notes
 
+## 1.6.0
+* DotnetTool support for install -g
+* Updated to netcoreapp2.1
+
 ## 1.5.0
+* Update NuGet dependencies
 
 ## 1.4.0
 * SemVer registration url support
