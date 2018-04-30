@@ -1,5 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+<Project ToolsVersion="15.0">
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common\test.props" />
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
   <PropertyGroup Condition=" '$(IsXPlat)' != 'true' ">
     <TargetFrameworks>netcoreapp2.1;net461</TargetFrameworks>
   </PropertyGroup>
@@ -11,4 +13,5 @@
     <ProjectReference Include="..\Test.Common\Test.Common.csproj" />
   </ItemGroup>
   <Import Project="$(BuildCommonDirectory)\common.targets" />
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>
