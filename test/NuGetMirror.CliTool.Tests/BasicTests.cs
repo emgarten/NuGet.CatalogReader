@@ -58,9 +58,9 @@ namespace NuGetMirror.CliTool.Tests
                 }
 
                 // Run the tool
-                result = await CmdRunner.RunAsync(dotnetExe, dir, $"nugetmirror --version");
-                result.Success.Should().BeTrue();
-                result.Errors.Should().BeNullOrEmpty();
+                result = await CmdRunner.RunAsync(dotnetExe, dir, $"{dllPath} --version");
+                result.Success.Should().BeTrue(result.Errors);
+                result.Errors.Should().BeNullOrEmpty(result.Errors);
             }
         }
 
