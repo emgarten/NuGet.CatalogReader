@@ -31,7 +31,7 @@ CI builds are located on the following NuGet feed:
 
 ``https://nuget.blob.core.windows.net/packages/index.json``
 
-The list of packages on this feed is [here](https://nuget.blob.core.windows.net/packages/nugetmirror.packageindex.json).
+The list of packages on this feed is [here](https://nuget.blob.core.windows.net/packages/sleet.packageindex.json).
 
 # Quick start
 
