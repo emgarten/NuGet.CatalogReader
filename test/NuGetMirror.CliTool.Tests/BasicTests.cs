@@ -47,7 +47,7 @@ namespace NuGetMirror.CliTool.Tests
 
                 var version = nupkg.Nuspec.GetVersion().ToNormalizedString();
 
-                var result = await CmdRunner.RunAsync(dotnetExe, testContext.Root, $"tool install nugetmirror --version {version} --source-feed {nupkgsFolder} --tool-path {dir}");
+                var result = await CmdRunner.RunAsync(dotnetExe, testContext.Root, $"tool install nugetmirror --version {version} --add-source {nupkgsFolder} --tool-path {dir}");
                 result.Success.Should().BeTrue(result.AllOutput);
 
                 var dllPath = Path.Combine(dir, ".store", "nugetmirror", version, "nugetmirror", version, "tools", "netcoreapp2.1", "any", "NuGetMirror.dll");
