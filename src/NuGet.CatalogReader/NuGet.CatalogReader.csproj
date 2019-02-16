@@ -13,7 +13,7 @@
     <Shipping>true</Shipping>
   </PropertyGroup>
   <PropertyGroup>
-    <Description>NuGet v3 catalog reader.</Description>
+    <Description>Utilities for reading NuGet v3 feeds, downloading packages, and reading package metadata.</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="$(JsonVersion)" />
