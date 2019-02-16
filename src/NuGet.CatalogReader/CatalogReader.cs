@@ -2,15 +2,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using NuGet.Common;
-using NuGet.Configuration;
-using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
@@ -20,131 +17,72 @@ namespace NuGet.CatalogReader
     /// <summary>
     /// NuGet v3 catalog reader.
     /// </summary>
-    public class CatalogReader : IDisposable
+    public class CatalogReader : HttpReaderBase
     {
-        private readonly Uri _indexUri;
-        private HttpSource _httpSource;
-        private readonly ILogger _log;
-        private readonly HttpSourceCacheContext _cacheContext;
-        private readonly SourceCacheContext _sourceCacheContext;
-        private readonly HttpMessageHandler _messageHandler;
-        private ServiceIndexResourceV3 _serviceIndex;
-
-        /// <summary>
-        /// Max threads. Set to 1 to disable concurrency.
-        /// </summary>
-        public int MaxThreads { get; set; } = 16;
-
-        /// <summary>
-        /// Http cache location
-        /// </summary>
-        public string HttpCacheFolder
-        {
-            get
-            {
-                return _cacheContext.RootTempFolder;
-            }
-        }
-
         /// <summary>
         /// CatalogReader
         /// </summary>
-        /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
+        /// <param name="indexUri">URI of the the feed service index.</param>
         public CatalogReader(Uri indexUri)
-            : this(indexUri, httpSource: null, cacheContext: null, cacheTimeout: TimeSpan.Zero, log: null)
+            : base(indexUri)
         {
         }
 
         /// <summary>
         /// CatalogReader
         /// </summary>
-        /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
+        /// <param name="indexUri">URI of the the feed service index.</param>
         public CatalogReader(Uri indexUri, TimeSpan cacheTimeout)
-            : this(indexUri, httpSource: null, cacheContext: null, cacheTimeout: cacheTimeout, log: null)
+            : base(indexUri, cacheTimeout)
         {
         }
 
         /// <summary>
         /// CatalogReader
         /// </summary>
-        /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
+        /// <param name="indexUri">URI of the the feed service index.</param>
         public CatalogReader(Uri indexUri, ILogger log)
-            : this(indexUri, httpSource: null, cacheContext: null, cacheTimeout: TimeSpan.Zero, log: log)
+            : base(indexUri, log)
         {
         }
 
         /// <summary>
         /// CatalogReader
         /// </summary>
-        /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
+        /// <param name="indexUri">URI of the the feed service index.</param>
         public CatalogReader(Uri indexUri, TimeSpan cacheTimeout, ILogger log)
-            : this(indexUri, httpSource: null, cacheContext: null, cacheTimeout: cacheTimeout, log: log)
+            : base(indexUri, cacheTimeout, log)
         {
         }
 
         /// <summary>
         /// CatalogReader
         /// </summary>
-        /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
+        /// <param name="indexUri">URI of the the feed service index.</param>
         /// <param name="messageHandler">HTTP message handler.</param>
         public CatalogReader(Uri indexUri, HttpMessageHandler messageHandler)
-            : this(indexUri,
-                  messageHandler: null,
-                  log: null)
+            : base(indexUri, messageHandler)
         {
         }
 
         /// <summary>
         /// CatalogReader
         /// </summary>
-        /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
+        /// <param name="indexUri">URI of the the feed service index.</param>
         /// <param name="messageHandler">HTTP message handler.</param>
         public CatalogReader(Uri indexUri, HttpMessageHandler messageHandler, ILogger log)
-            : this(indexUri,
-                  httpSource: null,
-                  cacheContext: null,
-                  cacheTimeout: TimeSpan.Zero,
-                  log: log)
+            : base(indexUri, messageHandler, log)
         {
-            _messageHandler = messageHandler;
         }
 
         /// <summary>
         /// CatalogReader
         /// </summary>
-        /// <param name="indexUri">URI of the catalog service or the feed service index.</param>
+        /// <param name="indexUri">URI of the the feed service index.</param>
         /// <param name="httpSource">Custom HttpSource.</param>
         public CatalogReader(Uri indexUri, HttpSource httpSource, SourceCacheContext cacheContext, TimeSpan cacheTimeout, ILogger log)
+            : base(indexUri, httpSource, cacheContext, cacheTimeout, log)
         {
-            _indexUri = indexUri ?? throw new ArgumentNullException(nameof(indexUri));
-            _log = log ?? NullLogger.Instance;
-            _sourceCacheContext = cacheContext ?? new SourceCacheContext();
-
-            _httpSource = httpSource;
-
-            // TODO: what should retry be?
-            _cacheContext = HttpSourceCacheContext.Create(_sourceCacheContext, 5);
-
-            if (_sourceCacheContext == null)
-            {
-                var sourceCacheContext = new SourceCacheContext()
-                {
-                    MaxAge = DateTimeOffset.UtcNow.Subtract(cacheTimeout),
-                };
-
-                _cacheContext = HttpSourceCacheContext.Create(sourceCacheContext, 5);
-            }
-        }
-
-        /// <summary>
-        /// Retrieve the HttpSource used for Http requests.
-        /// </summary>
-        /// <returns></returns>
-        public async Task<HttpSource> GetHttpSourceAsync()
-        {
-            await EnsureHttpSourceAsync();
-
-            return _httpSource;
         }
 
         /// <summary>
@@ -340,7 +278,7 @@ namespace NuGet.CatalogReader
 
             return inRange.OrderBy(e => e.CommitTimeStamp).ToList();
         }
- 
+
         /// <summary>
         /// Read all catalog entries.
         /// </summary>
@@ -353,15 +291,6 @@ namespace NuGet.CatalogReader
             var pages = await GetPageEntriesAsync(start, end, token);
 
             return await GetEntriesAsync(pages, start, end, token);
-        }
-
-        /// <summary>
-        /// Clear the HttpCacheFolder cache folder.
-        /// Use this to free up space when downloading large numbers of packages.
-        /// </summary>
-        public void ClearCache()
-        {
-            CatalogReaderUtility.DeleteDirectoryFiles(HttpCacheFolder);
         }
 
         private async Task<IReadOnlyList<CatalogEntry>> GetEntriesCommitTimeDescAsync(DateTimeOffset start, DateTimeOffset end, CancellationToken token)
@@ -433,93 +362,6 @@ namespace NuGet.CatalogReader
             return true;
         }
 
-        private Func<Uri, CancellationToken, Task<JObject>> _getJson;
-        private Func<Uri, CancellationToken, Task<JObject>> GetJson
-        {
-            get
-            {
-                if (_getJson == null)
-                {
-                    _getJson = (uri, token) => _httpSource.GetJObjectAsync(uri, _cacheContext, _log, token);
-                }
-
-                return _getJson;
-            }
-        }
-
-        private Func<Uri, CancellationToken, Task<HttpSourceResult>> _getNupkg;
-        private Func<Uri, CancellationToken, Task<HttpSourceResult>> GetNupkg
-        {
-            get
-            {
-                if (_getNupkg == null)
-                {
-                    _getNupkg = (uri, token) => _httpSource.GetNupkgAsync(uri, _cacheContext, _log, token);
-                }
-
-                return _getNupkg;
-            }
-        }
-
-        private Func<Uri, CancellationToken, Task<NuspecReader>> _getNuspec;
-        private Func<Uri, CancellationToken, Task<NuspecReader>> GetNuspec
-        {
-            get
-            {
-                if (_getNuspec == null)
-                {
-                    _getNuspec = (uri, token) => _httpSource.GetNuspecAsync(uri, _cacheContext, _log, token);
-                }
-
-                return _getNuspec;
-            }
-        }
-
-        /// <summary>
-        /// Ensure index.json has been loaded.
-        /// </summary>
-        private async Task EnsureServiceIndexAsync(Uri uri, CancellationToken token)
-        {
-            if (_serviceIndex == null)
-            {
-                await EnsureHttpSourceAsync();
-
-                var index = await _httpSource.GetJObjectAsync(_indexUri, _cacheContext, _log, token);
-                var resources = (index["resources"] as JArray);
-
-                if (resources == null)
-                {
-                    throw new InvalidOperationException($"{uri.AbsoluteUri} does not contain a 'resources' property. Use the root service index.json for the nuget v3 feed.");
-                }
-
-                _serviceIndex = new ServiceIndexResourceV3(index, DateTime.UtcNow);
-            }
-        }
-
-        private async Task EnsureHttpSourceAsync()
-        {
-            if (_httpSource == null)
-            {
-                var handlerResource = await CatalogReaderUtility.GetHandlerAsync(_indexUri, _messageHandler);
-
-                var packageSource = new PackageSource(_indexUri.AbsoluteUri);
-
-                _httpSource = new HttpSource(
-                    packageSource,
-                    () => Task.FromResult((HttpHandlerResource)handlerResource),
-                    NullThrottle.Instance);
-
-                if (string.IsNullOrEmpty(UserAgent.UserAgentString) 
-                    || new UserAgentStringBuilder().Build()
-                        .Equals(UserAgent.UserAgentString, StringComparison.Ordinal))
-                {
-                    // Set the user agent string if it was not already set.
-                    var userAgent = new UserAgentStringBuilder("NuGet.CatalogReader");
-                    UserAgent.SetUserAgentString(userAgent);
-                }
-            }
-        }
-
         /// <summary>
         /// Return the catalog index.json Uri.
         /// </summary>
@@ -538,12 +380,6 @@ namespace NuGet.CatalogReader
             var catalogRootUri = await GetCatalogIndexUriAsync(token);
 
             return await _httpSource.GetJObjectAsync(catalogRootUri, _cacheContext, _log, token);
-        }
-
-        public void Dispose()
-        {
-            _httpSource?.Dispose();
-            _sourceCacheContext.Dispose();
         }
     }
 }

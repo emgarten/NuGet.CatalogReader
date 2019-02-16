@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using NuGet.Versioning;
 
 namespace NuGet.CatalogReader

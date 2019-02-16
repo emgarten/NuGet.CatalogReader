@@ -85,26 +85,32 @@ namespace NuGet.CatalogReader
             return uri.AbsolutePath.Replace("/", "_").Replace("\\", "_").Replace(":", "_");
         }
 
-        private static readonly string[] RegistrationsBaseUrl = { "RegistrationsBaseUrl/3.6.0", "RegistrationsBaseUrl/3.4.0", "RegistrationsBaseUrl/3.0.0-beta" };
+        private static readonly string[] RegistrationsBaseUrl = { "RegistrationsBaseUrl/Versioned", "RegistrationsBaseUrl/3.6.0", "RegistrationsBaseUrl/3.4.0", "RegistrationsBaseUrl/3.0.0-beta" };
         private static readonly string[] PackageBaseAddressUrl = { "PackageBaseAddress/3.0.0" };
         private static readonly string[] CatalogServiceUrl = { "Catalog/3.0.0", "http://schema.emgarten.com/sleet#Catalog/1.0.0" };
+        private static readonly string[] SleetPackageIndexUrl = { "http://schema.emgarten.com/sleet#SymbolsPackageIndex/1.0.0" };
+
+        internal static Uri GetSleetPackageIndexUrl(this ServiceIndexResourceV3 serviceIndex)
+        {
+            return serviceIndex.GetServiceUri(SleetPackageIndexUrl);
+        }
 
         internal static Uri GetCatalogServiceUri(this ServiceIndexResourceV3 serviceIndex)
         {
-            return serviceIndex.GetCatalogServiceUri(CatalogServiceUrl);
+            return serviceIndex.GetServiceUri(CatalogServiceUrl);
         }
 
         internal static Uri GetPackageBaseAddressUri(this ServiceIndexResourceV3 serviceIndex)
         {
-            return serviceIndex.GetCatalogServiceUri(PackageBaseAddressUrl);
+            return serviceIndex.GetServiceUri(PackageBaseAddressUrl);
         }
 
         internal static Uri GetRegistrationBaseUri(this ServiceIndexResourceV3 serviceIndex)
         {
-            return serviceIndex.GetCatalogServiceUri(RegistrationsBaseUrl);
+            return serviceIndex.GetServiceUri(RegistrationsBaseUrl);
         }
 
-        internal static Uri GetCatalogServiceUri(this ServiceIndexResourceV3 serviceIndex, string[] types)
+        internal static Uri GetServiceUri(this ServiceIndexResourceV3 serviceIndex, string[] types)
         {
             var uris = serviceIndex.GetServiceEntryUris(types);
 
