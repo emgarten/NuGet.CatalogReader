@@ -10,7 +10,7 @@
     <projectUrl>https://github.com/emgarten/nuget.catalogreader</projectUrl>
     <iconUrl>https://emgartenstatic.blob.core.windows.net/nupkgs/icons/nugetmirror.png</iconUrl>
     <description>NuGet v3 catalog reader.</description>
-    <tags>nuget nugetcatalog nugetfeed nugetv3</tags>
+    <tags>nuget nugetcatalog nugetfeed nugetv3 mirror</tags>
     <repository type="git" url="https://github.com/emgarten/nuget.catalogreader" branch="$branch$" commit="$commit$" />
     <packageTypes>
       <packageType name="DotnetTool" />

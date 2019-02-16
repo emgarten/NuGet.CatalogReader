@@ -11,7 +11,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <Description>NuGet v3 feed mirror utility.</Description>
+    <Description>A dotnet tool for mirroring nuget.org and downloading packages to disk.</Description>
     <ToolCommandName>nugetmirror</ToolCommandName>
     <PackProject>true</PackProject>
     <PublishProject>true</PublishProject>
