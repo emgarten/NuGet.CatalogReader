@@ -23,6 +23,7 @@ namespace NuGet.CatalogReader
             string commitId,
             DateTimeOffset commitTs,
             string id,
+            string description,
             NuGetVersion version,
             ServiceIndexResourceV3 serviceIndex,
             Func<Uri, CancellationToken, Task<JObject>> getJson,
@@ -34,6 +35,7 @@ namespace NuGet.CatalogReader
             Types = new List<string>() { type };
             CommitId = commitId;
             CommitTimeStamp = commitTs;
+            Description = description;
         }
 
         /// <summary>
@@ -85,6 +87,11 @@ namespace NuGet.CatalogReader
         public DateTimeOffset CommitTimeStamp { get; }
 
         /// <summary>
+        /// description of the catalog entry
+        /// </summary>
+        public string Description { get; }
+
+        /// <summary>
         /// Read the Uri into a JObject. This contains all package details.
         /// </summary>
         public Task<JObject> GetPackageDetailsAsync()
@@ -99,7 +106,7 @@ namespace NuGet.CatalogReader
         {
             return _getJson(Uri, token);
         }
-        
+
         /// <summary>
         /// Compare by date.
         /// </summary>

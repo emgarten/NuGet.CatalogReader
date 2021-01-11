@@ -133,7 +133,7 @@ namespace NuGet.CatalogReader
                 if (entry.IsDelete)
                 {
                     // Mark as deleted, this has no
-                    // impact if the package was re-added. It will 
+                    // impact if the package was re-added. It will
                     // already be in the set in that case.
                     deleted.Add(entry);
                 }
@@ -246,7 +246,7 @@ namespace NuGet.CatalogReader
              * Suppose the following numbers represent the commit timestamps of ten packages published.
              * Also suppose that each timestamp is distinct, for simplicity. Finally, assume page size in the
              * catalog is two. The resulting five pages (identified by P0 .. P4) are:
-             * 
+             *
              *   0  1  2  3  4  5  6  7  8  9
              *   \__/  \__/  \__/  \__/  \__/
              *    P0    P1    P2    P3    P4
@@ -350,6 +350,7 @@ namespace NuGet.CatalogReader
                         cache.GetString(item["commitId"].ToObject<string>()),
                         cache.GetDate(item["commitTimeStamp"].ToObject<string>()),
                         cache.GetString(item["nuget:id"].ToObject<string>()),
+                        cache.GetString(item["nuget:description"].ToObject<string>()),
                         cache.GetVersion(item["nuget:version"].ToObject<string>()),
                         _serviceIndex,
                         GetJson,
