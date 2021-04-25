@@ -12,12 +12,26 @@
     <ToolCommandName>nugetmirror</ToolCommandName>
     <PackProject>true</PackProject>
     <PublishProject>true</PublishProject>
+    <SkipDocs>true</SkipDocs>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <IsTool>true</IsTool>
+    <PackAsTool>true</PackAsTool>
+  </PropertyGroup>
+
+  <!-- exe settings -->
+  <PropertyGroup Condition=" '$(PublishSingleFile)' == 'true' ">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishTrimmed>true</PublishTrimmed>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="$(CommandLineUtilsVersion)" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\NuGet.CatalogReader\NuGet.CatalogReader.csproj" />
   </ItemGroup>
@@ -26,22 +40,5 @@
   </ItemGroup>
   <Import Project="$(BuildCommonDirectory)\common.targets" />
 
-  <!--
-    ============================================================
-    Create NuGetMirror and NuGetMirrorDotnetTool
-    ============================================================
-  -->
-  <Target Name="PackProjects">
-    <PropertyGroup>
-      <MergedExePath>$(PublishOutputDirectory)$(AssemblyName).exe</MergedExePath>
-      <MergedExePathExists Condition="Exists($(MergedExePath))">true</MergedExePathExists>
-      <NuspecProperties>version=$(Version);configuration=$(Configuration);branch=$(RepositoryBranch);commit=$(RepositoryCommit);</NuspecProperties>
-    </PropertyGroup>
-
-    <Error Condition=" '$(IsXPlat)' != 'true' AND '$(MergedExePathExists)' != 'true' " Text="Missing $(MergedExePath)" />
-
-    <!-- Pack NuGetMirror with NugetMirror.exe -->
-    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Pack" Condition=" '$(IsXPlat)' != 'true' " Properties="Configuration=$(Configuration);&#xD;&#xA;                         PackageOutputPath=$(NupkgOutputDirectory);&#xD;&#xA;                         NoPackageAnalysis=true;&#xD;&#xA;                         IncludeSymbols=false;&#xD;&#xA;                         IsTool=true;&#xD;&#xA;                         NuspecFile=NuGetMirror.nuspec;&#xD;&#xA;                         NuspecProperties=$(NuspecProperties)" />
-  </Target>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>
