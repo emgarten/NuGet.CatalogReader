@@ -1,5 +1,10 @@
 # Release Notes
 
+## 2.0.0
+* Removed NuGetMirror.exe from nupkg, this should now be used as a dotnet tool only
+* Updated to net5.0
+* Removed Console project
+
 ## 1.6.0
 * DotnetTool support for install -g
 * Updated to netcoreapp2.1
