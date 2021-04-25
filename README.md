@@ -2,7 +2,7 @@
 
 | AppVeyor | Travis | Visual Studio Online |
 | --- | --- | --- |
-| [![AppVeyor](https://ci.appveyor.com/api/projects/status/1i2k4gx5gfmmtyju?svg=true)](https://ci.appveyor.com/project/emgarten/nuget-catalogreader) | [![Travis](https://travis-ci.org/emgarten/NuGet.CatalogReader.svg?branch=main)](https://travis-ci.org/emgarten/NuGet.CatalogReader) | [![VSO](https://hackamore.visualstudio.com/_apis/public/build/definitions/abbff132-0981-4267-a80d-a6e7682a75a9/4/badge)](https://github.com/emgarten/nuget.catalogreader) |
+| [![AppVeyor](https://ci.appveyor.com/api/projects/status/1i2k4gx5gfmmtyju?svg=true)](https://ci.appveyor.com/project/emgarten/nuget-catalogreader) | [![Travis](https://travis-ci.com/emgarten/NuGet.CatalogReader.svg?branch=main)](https://travis-ci.com/emgarten/NuGet.CatalogReader) | [![VSO](https://hackamore.visualstudio.com/_apis/public/build/definitions/abbff132-0981-4267-a80d-a6e7682a75a9/4/badge)](https://github.com/emgarten/nuget.catalogreader) |
 
 # What are these tools?
 
