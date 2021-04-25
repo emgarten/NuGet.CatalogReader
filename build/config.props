@@ -17,7 +17,7 @@
   <PropertyGroup>
     <Authors>emgarten</Authors>
     <ProjectUrl>https://github.com/emgarten/nuget.catalogreader</ProjectUrl>
-    <PackageLicenseUrl>https://github.com/emgarten/nuget.catalogreader/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseUrl>https://github.com/emgarten/nuget.catalogreader/blob/main/LICENSE</PackageLicenseUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/emgarten/nuget.catalogreader</RepositoryUrl>
     <PackageTags>nuget nugetcatalog nugetfeed nugetv3</PackageTags>
