@@ -9,7 +9,7 @@ Function Install-DotnetCLI {
 
     New-Item -ItemType Directory -Force -Path $CLIRoot | Out-Null
 
-    $env:DOTNET_HOME=$CLIRoot
+    $env:DOTNET_HOME = $CLIRoot
     $installDotnet = Join-Path $CLIRoot "install.ps1"
 
     $DotnetExe = Get-DotnetCLIExe $RepoRoot
@@ -20,11 +20,9 @@ Function Install-DotnetCLI {
 
         Write-Host "Fetching $installDotnet"
 
-        wget https://raw.githubusercontent.com/dotnet/cli/b3b69e36cb7b99a1b42dceb3a0167d283f653575/scripts/obtain/dotnet-install.ps1 -OutFile $installDotnet
+        wget https://raw.githubusercontent.com/dotnet/install-scripts/f82bb9c90fa6623cf3518539368c2bea80338e99/src/dotnet-install.ps1 -OutFile $installDotnet
 
-        & $installDotnet -Channel 2.1 -i $CLIRoot -Version 2.1.403
-        & $installDotnet -Channel 2.0 -i $CLIRoot -Version 2.0.3
-        & $installDotnet -Channel preview -i $CLIRoot -Version 1.0.4
+        & $installDotnet -Channel 5.0 -i $CLIRoot
 
         if (-not (Test-Path $DotnetExe)) {
             Write-Log "Missing $DotnetExe"
@@ -68,13 +66,12 @@ Function Install-NuGetExe {
 
     $nugetExe = Get-NuGetExePath $RepoRoot
 
-    if (-not (Test-Path $nugetExe))
-    {
+    if (-not (Test-Path $nugetExe)) {
         Write-Host "Downloading nuget.exe"
         $nugetDir = Split-Path $nugetExe
         New-Item -ItemType Directory -Force -Path $nugetDir
 
-        wget https://dist.nuget.org/win-x86-commandline/v4.6.2/nuget.exe -OutFile $nugetExe
+        wget https://dist.nuget.org/win-x86-commandline/v5.3.0/nuget.exe -OutFile $nugetExe
     }
 }
 
@@ -86,8 +83,7 @@ Function Remove-Artifacts {
 
     $artifactsDir = Join-Path $RepoRoot "artifacts"
 
-    if (Test-Path $artifactsDir)
-    {
+    if (Test-Path $artifactsDir) {
         Remove-Item $artifactsDir -Force -Recurse
     }
 }
@@ -106,8 +102,7 @@ Function Invoke-DotnetExe {
 
     & $dotnetExe $Arguments
 
-    if (-not $?)
-    {
+    if (-not $?) {
         Write-Error $command
         exit 1
     }
@@ -124,7 +119,61 @@ Function Invoke-DotnetMSBuild {
     $buildArgs += "/nologo"
     $buildArgs += "/v:m"
     $buildArgs += "/nr:false"
+    $buildArgs += "/m:1"
     $buildArgs += $Arguments
 
     Invoke-DotnetExe $RepoRoot $buildArgs
+}
+
+Function Install-DotnetTools {
+    param(
+        [string]$RepoRoot
+    )
+
+    $toolsPath = Join-Path $RepoRoot ".nuget/tools"
+
+    if (-not (Test-Path $toolsPath)) {
+        Write-Host "Installing dotnet tools to $toolsPath"
+        $args = @("tool","install","--tool-path",$toolsPath,"--ignore-failed-sources","dotnet-format","--version","5.0.211103")
+
+        Invoke-DotnetExe $RepoRoot $args
+    }
+}
+
+Function Install-CommonBuildTools {
+    param(
+        [string]$RepoRoot
+    )
+
+    Install-DotnetCLI $RepoRoot
+    Install-NuGetExe $RepoRoot
+    Install-DotnetTools $RepoRoot
+}
+
+Function Invoke-DotnetFormat {
+    param(
+        [string]$RepoRoot
+    )
+
+    $formatExe = Join-Path $RepoRoot ".nuget/tools/dotnet-format.exe"
+
+    $args = @("--fix-whitespace","--fix-style", "warn", "--fix-analyzers", "warn")
+
+    # On CI builds run a check instead of making code changes
+    if ($env:CI -eq "True") 
+    {
+        $args += "--check"
+    }
+
+    $command = "$formatExe $args"
+    Write-Host "[EXEC] $command" -ForegroundColor Cyan
+
+    & $formatExe $args
+
+    if (-not $?) {
+        Write-Warning "dotnet-format failed. Please fix the style errors!"
+
+        # Currently dotnet-format fails on CIs but not locally in some scenarios
+        # exit 1
+    }
 }

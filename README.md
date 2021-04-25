@@ -12,21 +12,17 @@ NuGet.CatalogReader is a library for reading package ids, versions, and the chan
 
 ## Getting NuGetMirror
 
-### Manually getting nugetmirror.exe (Windows and Mono)
-1. Download the latest nupkg from [NuGet.org](https://www.nuget.org/packages/NuGetMirror)
-1. Extract *tools/NuGetMirror.exe* to a local folder and run it.
-
 ### Install dotnet global tool
 1. `dotnet tool install -g nugetmirror`
 1. `nugetmirror` should now be on your *PATH*
 
 # Quick start
 
-## Using NuGetMirror.exe
+## Using NuGetMirror
 
 Mirror all packages to a folder on disk.
 
-``NuGetMirror.exe nupkgs https://api.nuget.org/v3/index.json -o d:\tmp``
+``NuGetMirror nupkgs https://api.nuget.org/v3/index.json -o d:\tmp``
 
 NuGetMirror can be used to continually sync the latest packages. Runs store to the last commit time to disk, future runs will resume from this point and only get new or updated packages.
  
