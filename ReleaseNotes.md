@@ -1,5 +1,9 @@
 # Release Notes
 
+## 3.0.0
+* Updated to net6.0
+* Updated dependencies
+
 ## 2.0.0
 * Removed NuGetMirror.exe from nupkg, this should now be used as a dotnet tool only
 * Updated to net5.0

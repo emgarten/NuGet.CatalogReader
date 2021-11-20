@@ -19,7 +19,7 @@ namespace Test.Common
             {
                 var sleetConfig = CreateSleetConfig(root, feedRoot, baseUri);
                 var settings = LocalSettings.Load(sleetConfig);
-                var fileSystem = FileSystemFactory.CreateFileSystem(settings, cache, "feed");
+                var fileSystem = await FileSystemFactory.CreateFileSystemAsync(settings, cache, "feed");
                 var feedSettings = await FeedSettingsUtility.GetSettingsOrDefault(fileSystem, log, CancellationToken.None);
                 feedSettings.CatalogEnabled = true;
                 feedSettings.SymbolsEnabled = false;
@@ -64,7 +64,7 @@ namespace Test.Common
                 using (var cache = new LocalCache())
                 {
                     var settings = LocalSettings.Load(sleetConfig);
-                    var fileSystem = FileSystemFactory.CreateFileSystem(settings, cache, "feed");
+                    var fileSystem = await FileSystemFactory.CreateFileSystemAsync(settings, cache, "feed");
 
                     var success = await PushCommand.PushPackages(settings, fileSystem, new List<string>() { nupkgFolder }, true, false, log, CancellationToken.None);
 
