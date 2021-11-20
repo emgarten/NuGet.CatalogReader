@@ -50,7 +50,7 @@ namespace NuGetMirror.CliTool.Tests
                 var result = await CmdRunner.RunAsync(dotnetExe, testContext.Root, $"tool install nugetmirror --version {version} --add-source {nupkgsFolder} --tool-path {dir}");
                 result.Success.Should().BeTrue(result.AllOutput);
 
-                var dllPath = Path.Combine(dir, ".store", "nugetmirror", version, "nugetmirror", version, "tools", "net5.0", "any", "NuGetMirror.dll");
+                var dllPath = Path.Combine(dir, ".store", "nugetmirror", version, "nugetmirror", version, "tools", "net6.0", "any", "NuGetMirror.dll");
 
                 if (!File.Exists(dllPath))
                 {
