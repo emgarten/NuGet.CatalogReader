@@ -1,7 +1,7 @@
 <Project ToolsVersion="15.0">
   <!-- Dependency versions -->
   <PropertyGroup>
-    <NuGetPackageVersion>6.0.0</NuGetPackageVersion>
+    <NuGetPackageVersion>6.2.1</NuGetPackageVersion>
     <CommandLineUtilsVersion>2.0.0</CommandLineUtilsVersion>
     <NuGetTestHelpersVersion>2.1.23</NuGetTestHelpersVersion>
     <SleetVersion>5.0.1</SleetVersion>
