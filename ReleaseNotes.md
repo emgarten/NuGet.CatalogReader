@@ -1,5 +1,8 @@
 # Release Notes
 
+## 3.0.1
+* Update NuGet.* packages to 6.2.1
+
 ## 3.0.0
 * Updated to net6.0
 * Updated dependencies
