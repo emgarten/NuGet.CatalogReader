@@ -1,8 +1,8 @@
 ## Build Status
 
-| AppVeyor | Travis | Visual Studio Online |
+| AppVeyor | Visual Studio Online |
 | --- | --- | --- |
-| [![AppVeyor](https://ci.appveyor.com/api/projects/status/1i2k4gx5gfmmtyju?svg=true)](https://ci.appveyor.com/project/emgarten/nuget-catalogreader) | [![Travis](https://travis-ci.com/emgarten/NuGet.CatalogReader.svg?branch=main)](https://travis-ci.com/emgarten/NuGet.CatalogReader) | [![VSO](https://hackamore.visualstudio.com/_apis/public/build/definitions/abbff132-0981-4267-a80d-a6e7682a75a9/4/badge)](https://github.com/emgarten/nuget.catalogreader) |
+| [![AppVeyor](https://ci.appveyor.com/api/projects/status/1i2k4gx5gfmmtyju?svg=true)](https://ci.appveyor.com/project/emgarten/nuget-catalogreader) | [![VSO](https://hackamore.visualstudio.com/_apis/public/build/definitions/abbff132-0981-4267-a80d-a6e7682a75a9/4/badge)](https://github.com/emgarten/nuget.catalogreader) |
 
 # What are these tools?
 
@@ -65,6 +65,10 @@ CI builds are located on the following NuGet feed:
 ``https://nuget.blob.core.windows.net/packages/index.json``
 
 The list of packages on this feed is [here](https://nuget.blob.core.windows.net/packages/sleet.packageindex.json).
+
+## Contributing
+
+We welcome contributions. If you are interested in contributing you can report an issue or open a pull request to propose a change.
 
 ### License
 [MIT License](https://raw.githubusercontent.com/emgarten/NuGet.CatalogReader/main/LICENSE)
