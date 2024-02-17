@@ -1,16 +1,17 @@
 <Project ToolsVersion="15.0">
   <!-- Dependency versions -->
   <PropertyGroup>
-    <NuGetPackageVersion>6.2.1</NuGetPackageVersion>
+    <NuGetPackageVersion>6.9.1</NuGetPackageVersion>
     <CommandLineUtilsVersion>2.0.0</CommandLineUtilsVersion>
-    <NuGetTestHelpersVersion>2.1.23</NuGetTestHelpersVersion>
-    <SleetVersion>5.0.1</SleetVersion>
-    <JsonVersion>13.0.1</JsonVersion>
+    <NuGetTestHelpersVersion>2.1.26</NuGetTestHelpersVersion>
+    <SleetVersion>5.2.12</SleetVersion>
+    <JsonVersion>13.0.3</JsonVersion>
   </PropertyGroup>
   
   <!-- Config -->
   <PropertyGroup>
     <RepositoryName>NuGet.CatalogReader</RepositoryName>
+    <PackageIconPath>$(MSBuildThisFileDirectory)/icons/icon.png</PackageIconPath>
   </PropertyGroup>
 
   <!-- Nuspec defaults -->
