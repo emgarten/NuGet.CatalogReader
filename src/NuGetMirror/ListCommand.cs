@@ -1,10 +1,12 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using NuGetMirror;
 using McMaster.Extensions.CommandLineUtils;
 using NuGet.CatalogReader;
 using NuGet.Common;
+using NuGet.Configuration;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 
@@ -38,14 +40,32 @@ namespace NuGetMirror
                 {
                     if (string.IsNullOrEmpty(argRoot.Value))
                     {
-                        throw new ArgumentException("Provide the full http url to a v3 nuget feed.");
+                        throw new ArgumentException("Provide the full http url to a v3 nuget feed or a locally configured source name.");
                     }
 
-                    var index = new Uri(argRoot.Value);
-
-                    if (!index.AbsolutePath.EndsWith("/index.json", StringComparison.OrdinalIgnoreCase))
+                    // Attempts to load a configured source (including inactive ones) and fallback to Uri parsing if it fails
+                    Uri index;
+                    var sources = PackageSourceProvider.LoadPackageSources(Settings.LoadDefaultSettings(Environment.CurrentDirectory));
+                    var source = sources.FirstOrDefault(o => o.Name == argRoot.Value);
+                    if (source != null)
                     {
-                        throw new ArgumentException($"Invalid feed url: '{argRoot.Value}'. Provide the full http url to a v3 nuget feed.");
+                        index = source.SourceUri;
+                        httpSource = HttpSource.Create(Repository.Factory.GetCoreV3(source));
+                    }
+                    else
+                    {
+                        if (!Uri.TryCreate(argRoot.Value, UriKind.Absolute, out index))
+                        {
+                            // The enumerable is safe to re-iterate because it's a List implementation
+                            Debug.Assert(sources is ICollection<PackageSource>, "Sources implementation changed");
+                            var sourceNames = string.Join(", ", sources.Select(o => o.Name));
+                            throw new ArgumentException($"Invalid feed identifier: '{argRoot.Value}'. Provide the full http url to a v3 nuget feed or a locally configured identifier. Configured sources are: {sourceNames}");
+                        }
+
+                        if (!index.AbsolutePath.EndsWith("/index.json", StringComparison.OrdinalIgnoreCase))
+                        {
+                            throw new ArgumentException($"Invalid feed url: '{argRoot.Value}'. Provide the full http url to a v3 nuget feed.");
+                        }
                     }
 
                     var startTime = DateTimeOffset.MinValue;
