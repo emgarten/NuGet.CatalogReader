@@ -1,7 +1,7 @@
 <Project ToolsVersion="15.0">
   <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common\common.props" />
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
-  
+
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
   </PropertyGroup>
@@ -13,10 +13,17 @@
   <PropertyGroup>
     <Description>Utilities for reading NuGet v3 feeds, downloading packages, and reading package metadata.</Description>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="$(JsonVersion)" />
     <PackageReference Include="NuGet.Protocol" Version="$(NuGetPackageVersion)" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- Vuln fixes -->
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
+
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
     <PackageReference Include="System.Collections.Concurrent" Version="4.3.0" />

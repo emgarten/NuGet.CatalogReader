@@ -76,6 +76,7 @@ namespace NuGetMirror
 
         private static void Configure()
         {
+#if NET6_0 || NET8_0
             // Set connection limit
             if (!RuntimeEnvironmentHelper.IsMono)
             {
@@ -92,6 +93,7 @@ namespace NuGetMirror
                 SecurityProtocolType.Tls |
                 SecurityProtocolType.Tls11 |
                 SecurityProtocolType.Tls12;
+#endif
 
             var userAgent = new UserAgentStringBuilder("NuGetMirror");
             UserAgent.SetUserAgentString(userAgent);
