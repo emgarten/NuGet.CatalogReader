@@ -1,5 +1,10 @@
 # Release Notes
 
+## 3.3.0
+* Add net9.0 support
+* Update NuGet.* packages to 6.12.1
+* NuGetMirror auth support using nuget.config [PR](https://github.com/emgarten/NuGet.CatalogReader/pull/30)
+
 ## 3.2.0
 * Add net8.0 support, remove net7.0 support
 * Update NuGet.* packages to 6.9.1

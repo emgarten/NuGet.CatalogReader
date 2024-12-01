@@ -25,7 +25,11 @@ Mirror all packages to a folder on disk.
 ``NuGetMirror nupkgs https://api.nuget.org/v3/index.json -o d:\tmp``
 
 NuGetMirror can be used to continually sync the latest packages. Runs store to the last commit time to disk, future runs will resume from this point and only get new or updated packages.
- 
+
+### Auth support
+
+NuGetMirror can use credentials from a *nuget.config* file. Pass the name of the source instead of the index.json URI and ensure that the config is in the working directory or one of the common nuget.config locations.
+
 ## Using NuGet.CatalogReader
 
 Discover all packages in a feed using ``GetFlattenedEntriesAsync``. To see the complete history including edits use ``GetEntriesAsync``.
