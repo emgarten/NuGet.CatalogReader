@@ -98,6 +98,25 @@ namespace NuGet.CatalogReader.Tests
         }
 
         [Fact]
+        public async Task VerifyDownloadNuspec()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    // Act
+                    var fileInfo = await entry.DownloadNuspecAsync(
+                        downloadFolder,
+                        DownloadMode.Force,
+                        CancellationToken.None);
+
+                    // Assert
+                    var reader = new NuspecReader(fileInfo.FullName);
+                    Assert.Equal("a", reader.GetId());
+                });
+        }
+
+        [Fact]
         public async Task VerifyDownloadModeSkipIfExists_DoesNotExist()
         {
             // Arrange
