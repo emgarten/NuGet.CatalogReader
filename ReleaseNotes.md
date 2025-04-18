@@ -1,5 +1,8 @@
 # Release Notes
 
+## 3.3.2
+* Fix for download nuspec helpers [PR](https://github.com/emgarten/NuGet.CatalogReader/pull/33)
+
 ## 3.3.0
 * Add net9.0 support
 * Update NuGet.* packages to 6.12.1
