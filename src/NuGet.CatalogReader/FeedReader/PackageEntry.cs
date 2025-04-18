@@ -159,14 +159,18 @@ namespace NuGet.CatalogReader
         /// </summary>
         protected async Task<FileInfo> DownloadNuspecAsync(string outputDirectory, DownloadMode mode, DateTimeOffset date, CancellationToken token)
         {
-            using (var stream = await GetNupkgAsync(token))
+            var reader = await GetNuspecAsync(token);
+
+            if (reader == null)
             {
-                var path = new FileInfo(Path.Combine(outputDirectory, $"{FileBaseName}.nuspec".ToLowerInvariant()));
-
-                await CatalogReaderUtility.DownloadFileAsync(stream, path, date, mode, token);
-
-                return path;
+                throw new InvalidOperationException($"Nuspec not found: {NuspecUri}");
             }
+
+            var path = new FileInfo(Path.Combine(outputDirectory, $"{FileBaseName}.nuspec".ToLowerInvariant()));
+
+            File.WriteAllText(path.FullName, reader.Xml.ToString());
+
+            return path;
         }
 
         /// <summary>
