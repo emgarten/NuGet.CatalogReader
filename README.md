@@ -1,8 +1,8 @@
 ## Build Status
 
-| AppVeyor | Visual Studio Online |
-| --- | --- |
-| [![AppVeyor](https://ci.appveyor.com/api/projects/status/1i2k4gx5gfmmtyju?svg=true)](https://ci.appveyor.com/project/emgarten/nuget-catalogreader) | [![VSO](https://hackamore.visualstudio.com/_apis/public/build/definitions/abbff132-0981-4267-a80d-a6e7682a75a9/4/badge)](https://github.com/emgarten/nuget.catalogreader) |
+| Github |
+| --- |
+| [![.NET test](https://github.com/emgarten/NuGet.CatalogReader/actions/workflows/dotnet.yml/badge.svg)](https://github.com/emgarten/NuGet.CatalogReader/actions/workflows/dotnet.yml) |
 
 # What are these tools?
 
@@ -61,14 +61,6 @@ using (var feedReader = new FeedReader(feed))
     }
 }
 ```
-
-## CI builds
-
-CI builds are located on the following NuGet feed:
-
-``https://nuget.blob.core.windows.net/packages/index.json``
-
-The list of packages on this feed is [here](https://nuget.blob.core.windows.net/packages/sleet.packageindex.json).
 
 ## Contributing
 
