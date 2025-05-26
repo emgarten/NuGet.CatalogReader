@@ -39,7 +39,7 @@ namespace NuGet.CatalogReader
         {
             return RunAsync(
                 tasks: tasks.Select(GetFuncWithReturnValue),
-                useTaskRun: false,
+                useTaskRun: useTaskRun,
                 token: token);
         }
 
@@ -50,7 +50,7 @@ namespace NuGet.CatalogReader
         {
             return RunAsync(
                 tasks: tasks.Select(GetFuncWithReturnValue),
-                useTaskRun: false,
+                useTaskRun: useTaskRun,
                 maxThreads: maxThreads,
                 token: token);
         }

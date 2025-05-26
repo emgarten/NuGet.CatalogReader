@@ -29,7 +29,7 @@ namespace NuGet.CatalogReader
         {
             var entriesArray = entries.ToArray();
 
-            if (entries.Distinct().Count() != entriesArray.Length)
+            if (entriesArray.Distinct().Count() != entriesArray.Length)
             {
                 throw new InvalidOperationException("Duplicate entries detected. Entries must be unique by id/version.");
             }
@@ -63,7 +63,7 @@ namespace NuGet.CatalogReader
         {
             var entriesArray = entries.ToArray();
 
-            maxThreads = Math.Min(1, maxThreads);
+            maxThreads = Math.Max(1, maxThreads);
 
             var files = new List<T>(entriesArray.Length);
             var tasks = new List<Task<T>>(maxThreads);
