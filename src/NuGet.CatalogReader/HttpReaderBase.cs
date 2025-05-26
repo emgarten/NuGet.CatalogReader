@@ -79,7 +79,7 @@ namespace NuGet.CatalogReader
         /// <param name="messageHandler">HTTP message handler.</param>
         public HttpReaderBase(Uri indexUri, HttpMessageHandler messageHandler)
             : this(indexUri,
-                  messageHandler: null,
+                  messageHandler: messageHandler,
                   log: null)
         {
         }
@@ -108,22 +108,26 @@ namespace NuGet.CatalogReader
         {
             _indexUri = indexUri ?? throw new ArgumentNullException(nameof(indexUri));
             _log = log ?? NullLogger.Instance;
-            _sourceCacheContext = cacheContext ?? new SourceCacheContext();
-
             _httpSource = httpSource;
 
-            // TODO: what should retry be?
-            _cacheContext = HttpSourceCacheContext.Create(_sourceCacheContext, 5);
-
-            if (_sourceCacheContext == null)
+            // Initialize the cache context used by HttpSource. If a SourceCacheContext
+            // was not provided, create one and respect the cache timeout parameter.
+            if (cacheContext == null)
             {
                 var sourceCacheContext = new SourceCacheContext()
                 {
                     MaxAge = DateTimeOffset.UtcNow.Subtract(cacheTimeout),
                 };
 
-                _cacheContext = HttpSourceCacheContext.Create(sourceCacheContext, 5);
+                _sourceCacheContext = sourceCacheContext;
             }
+            else
+            {
+                _sourceCacheContext = cacheContext;
+            }
+
+            // TODO: what should retry be?
+            _cacheContext = HttpSourceCacheContext.Create(_sourceCacheContext, 5);
         }
 
         /// <summary>
