@@ -16,7 +16,11 @@ namespace NuGetMirror
     {
         public static void Register(CommandLineApplication cmdApp, HttpSource httpSource, ILogger log)
         {
-            cmdApp.Command("list", (cmd) => Run(cmd, httpSource, log), throwOnUnexpectedArg: true);
+            cmdApp.Command("list", cmd =>
+            {
+                cmd.UnrecognizedArgumentHandling = UnrecognizedArgumentHandling.Throw;
+                Run(cmd, httpSource, log);
+            });
         }
 
         private static void Run(CommandLineApplication cmd, HttpSource httpSource, ILogger log)
@@ -34,7 +38,7 @@ namespace NuGetMirror
 
             cmd.HelpOption(Constants.HelpOption);
 
-            cmd.OnExecute(async () =>
+            cmd.OnExecuteAsync(async (CancellationToken _) =>
             {
                 try
                 {

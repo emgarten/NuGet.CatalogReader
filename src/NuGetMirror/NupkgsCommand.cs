@@ -23,7 +23,11 @@ namespace NuGetMirror
     {
         public static void Register(CommandLineApplication cmdApp, HttpSource httpSource, ILogger consoleLog)
         {
-            cmdApp.Command("nupkgs", (cmd) => Run(cmd, httpSource, consoleLog), throwOnUnexpectedArg: true);
+            cmdApp.Command("nupkgs", cmd =>
+            {
+                cmd.UnrecognizedArgumentHandling = UnrecognizedArgumentHandling.Throw;
+                Run(cmd, httpSource, consoleLog);
+            });
         }
 
         private static void Run(CommandLineApplication cmd, HttpSource httpSource, ILogger consoleLog)
@@ -51,7 +55,7 @@ namespace NuGetMirror
 
             cmd.HelpOption(Constants.HelpOption);
 
-            cmd.OnExecute(async () =>
+            cmd.OnExecuteAsync(async (CancellationToken _) =>
             {
                 var timer = new Stopwatch();
                 timer.Start();
