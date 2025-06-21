@@ -23,7 +23,11 @@ namespace NuGet.CatalogValidator
     {
         public static void Register(CommandLineApplication cmdApp, HttpSource httpSource, ILogger consoleLog)
         {
-            cmdApp.Command("validate", (cmd) => Run(cmd, httpSource, consoleLog), throwOnUnexpectedArg: true);
+            cmdApp.Command("validate", cmd =>
+            {
+                cmd.UnrecognizedArgumentHandling = UnrecognizedArgumentHandling.Throw;
+                Run(cmd, httpSource, consoleLog);
+            });
         }
 
         private static void Run(CommandLineApplication cmd, HttpSource httpSource, ILogger consoleLog)
@@ -41,7 +45,7 @@ namespace NuGet.CatalogValidator
 
             cmd.HelpOption(Constants.HelpOption);
 
-            cmd.OnExecute(async () =>
+            cmd.OnExecuteAsync(async (CancellationToken _) =>
             {
                 var timer = new Stopwatch();
                 timer.Start();
