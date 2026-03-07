@@ -10,7 +10,7 @@ using NuGet.Versioning;
 
 namespace NuGetMirror
 {
-    public class Program
+    public static class Program
     {
         public static int Main(string[] args)
         {
@@ -32,7 +32,7 @@ namespace NuGetMirror
             return MainCore(args, httpSource: null, log: log);
         }
 
-        public static Task<int> MainCore(string[] args, HttpSource httpSource, ILogger log)
+        public static Task<int> MainCore(string[] args, HttpSource? httpSource, ILogger log)
         {
             CmdUtils.LaunchDebuggerIfSet(ref args, log);
 
@@ -89,10 +89,7 @@ namespace NuGetMirror
             }
 
             // Limit SSL
-            ServicePointManager.SecurityProtocol =
-                SecurityProtocolType.Tls |
-                SecurityProtocolType.Tls11 |
-                SecurityProtocolType.Tls12;
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 #endif
 
             var userAgent = new UserAgentStringBuilder("NuGetMirror");

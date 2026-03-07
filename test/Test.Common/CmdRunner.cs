@@ -56,7 +56,7 @@ namespace Test.Common
             string exePath,
             string workingDirectory,
             string arguments,
-            Dictionary<string, string> envVars)
+            Dictionary<string, string>? envVars)
         {
             return Task.Factory.StartNew(() => Run(exePath, workingDirectory, arguments, envVars), TaskCreationOptions.LongRunning);
         }
@@ -68,7 +68,7 @@ namespace Test.Common
         string exePath,
         string workingDirectory,
         string arguments,
-        Dictionary<string, string> envVars)
+        Dictionary<string, string>? envVars)
         {
             exePath = Path.GetFullPath(exePath);
             workingDirectory = Path.GetFullPath(workingDirectory);
@@ -101,9 +101,9 @@ namespace Test.Common
             }
         }
 
-        private static void SetEnvVarsOnProcess(Dictionary<string, string> envVars, ProcessStartInfo processInfo)
+        private static void SetEnvVarsOnProcess(Dictionary<string, string>? envVars, ProcessStartInfo processInfo)
         {
-            if (envVars?.Any() == true)
+            if (envVars?.Count > 0)
             {
                 foreach (var envVar in envVars)
                 {

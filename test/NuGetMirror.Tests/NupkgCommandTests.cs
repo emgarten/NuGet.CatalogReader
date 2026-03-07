@@ -51,7 +51,7 @@ namespace NuGetMirror.Tests
 
                 var results = LocalFolderUtility.GetPackagesV2(nupkgsOutFolder, catalogLog).ToList();
 
-                results.Select(e => e.Identity).ShouldBeEquivalentTo(new[] { new PackageIdentity("a", NuGetVersion.Parse("1.0.0")) });
+                results.Select(e => e.Identity).Should().BeEquivalentTo(new[] { new PackageIdentity("a", NuGetVersion.Parse("1.0.0")) });
 
                 var afterDate = DateTimeOffset.UtcNow;
                 var cursor = MirrorUtility.LoadCursor(new DirectoryInfo(nupkgsOutFolder));
@@ -96,7 +96,7 @@ namespace NuGetMirror.Tests
 
                 var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
 
-                results.Select(e => e.Identity).ShouldBeEquivalentTo(new[] { new PackageIdentity("a", NuGetVersion.Parse("1.0.0")) });
+                results.Select(e => e.Identity).Should().BeEquivalentTo(new[] { new PackageIdentity("a", NuGetVersion.Parse("1.0.0")) });
 
                 var afterDate = DateTimeOffset.UtcNow;
                 var cursor = MirrorUtility.LoadCursor(new DirectoryInfo(nupkgsOutFolder));
@@ -147,7 +147,7 @@ namespace NuGetMirror.Tests
 
                 var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
 
-                results.Select(e => e.Identity).ShouldBeEquivalentTo(
+                results.Select(e => e.Identity).Should().BeEquivalentTo(
                     new[] {
                         new PackageIdentity("aa", NuGetVersion.Parse("1.0.0")),
                         new PackageIdentity("ab", NuGetVersion.Parse("1.0.0"))
@@ -194,7 +194,7 @@ namespace NuGetMirror.Tests
 
                 var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
 
-                results.Select(e => e.Identity).ShouldBeEquivalentTo(
+                results.Select(e => e.Identity).Should().BeEquivalentTo(
                     new[] {
                         new PackageIdentity("c", NuGetVersion.Parse("1.0.0"))
                     });
@@ -244,7 +244,7 @@ namespace NuGetMirror.Tests
 
                 var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
 
-                results.Select(e => e.Identity).ShouldBeEquivalentTo(expected);
+                results.Select(e => e.Identity).Should().BeEquivalentTo(expected);
 
                 var errorLog = Path.Combine(nupkgsOutFolder, "lastRunErrors.txt");
                 File.Exists(errorLog).Should().BeFalse();
@@ -291,7 +291,7 @@ namespace NuGetMirror.Tests
 
                 var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
 
-                results.Select(e => e.Identity).ShouldBeEquivalentTo(
+                results.Select(e => e.Identity).Should().BeEquivalentTo(
                     new[] {
                         new PackageIdentity("a", NuGetVersion.Parse("2.0.0")),
                         new PackageIdentity("b", NuGetVersion.Parse("2.0.0"))

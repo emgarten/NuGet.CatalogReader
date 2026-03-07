@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -80,7 +81,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="indexUri">URI of the the feed service index.</param>
         /// <param name="httpSource">Custom HttpSource.</param>
-        public CatalogReader(Uri indexUri, HttpSource httpSource, SourceCacheContext cacheContext, TimeSpan cacheTimeout, ILogger log)
+        public CatalogReader(Uri indexUri, HttpSource? httpSource, SourceCacheContext? cacheContext, TimeSpan cacheTimeout, ILogger? log)
             : base(indexUri, httpSource, cacheContext, cacheTimeout, log)
         {
         }
@@ -226,13 +227,13 @@ namespace NuGet.CatalogReader
 
             if (index["items"] != null)
             {
-                foreach (var item in index["items"])
+                foreach (var item in index["items"]!)
                 {
                     var dateTimeString = item.Value<string>("commitTimeStamp");
-                    var dateTime = DateTimeOffset.Parse(dateTimeString);
-                    var pageUri = new Uri(item["@id"].ToString());
-                    var types = new string[] { item.Value<string>("@type") };
-                    var commitId = item.Value<string>("commitId");
+                    var dateTime = DateTimeOffset.Parse(dateTimeString!, CultureInfo.InvariantCulture);
+                    var pageUri = new Uri(item["@id"]!.ToString());
+                    var types = new string[] { item.Value<string>("@type")! };
+                    var commitId = item.Value<string>("commitId")!;
 
                     pages.Add(new CatalogPageEntry(pageUri, types, commitId, dateTime));
                 }
@@ -314,7 +315,7 @@ namespace NuGet.CatalogReader
         {
             var tasks = pages.Select(page =>
                 new Func<Task<JObject>>(() =>
-                    _httpSource.GetJObjectAsync(page.Uri, _cacheContext, _log, token)));
+                    _httpSource!.GetJObjectAsync(page.Uri, _cacheContext, _log, token)));
 
             var maxThreads = Math.Max(1, MaxThreads);
             var cache = new ReferenceCache();
@@ -335,23 +336,23 @@ namespace NuGet.CatalogReader
         {
             var json = await task;
 
-            foreach (var item in json["items"])
+            foreach (var item in json["items"]!)
             {
                 // Store the url in pieces so it can be cached.
                 // Split on /
-                var urlParts = item["@id"]
-                    .ToObject<string>().Split('/')
-                    .Select(s => cache.GetString(s))
+                var urlParts = item["@id"]!
+                    .ToObject<string>()!.Split('/')
+                    .Select(s => cache.GetString(s)!)
                     .ToArray();
 
                 var entry = new CatalogEntry(
                         urlParts,
-                        cache.GetString(item["@type"].ToObject<string>()),
-                        cache.GetString(item["commitId"].ToObject<string>()),
-                        cache.GetDate(item["commitTimeStamp"].ToObject<string>()),
-                        cache.GetString(item["nuget:id"].ToObject<string>()),
-                        cache.GetVersion(item["nuget:version"].ToObject<string>()),
-                        _serviceIndex,
+                        cache.GetString(item["@type"]!.ToObject<string>())!,
+                        cache.GetString(item["commitId"]!.ToObject<string>())!,
+                        cache.GetDate(item["commitTimeStamp"]!.ToObject<string>()!),
+                        cache.GetString(item["nuget:id"]!.ToObject<string>())!,
+                        cache.GetVersion(item["nuget:version"]!.ToObject<string>()!),
+                        _serviceIndex!,
                         GetJson,
                         GetNuspec,
                         GetNupkg);
@@ -369,7 +370,7 @@ namespace NuGet.CatalogReader
         {
             await EnsureServiceIndexAsync(_indexUri, token);
 
-            return _serviceIndex.GetCatalogServiceUri();
+            return _serviceIndex!.GetCatalogServiceUri();
         }
 
         /// <summary>
@@ -379,7 +380,7 @@ namespace NuGet.CatalogReader
         {
             var catalogRootUri = await GetCatalogIndexUriAsync(token);
 
-            return await _httpSource.GetJObjectAsync(catalogRootUri, _cacheContext, _log, token);
+            return await _httpSource!.GetJObjectAsync(catalogRootUri, _cacheContext, _log, token);
         }
     }
 }

@@ -74,10 +74,7 @@ namespace NuGetMirror
         /// </summary>
         internal static void LogToConsole(LogLevel level, string message)
         {
-            if (message == null)
-            {
-                throw new ArgumentNullException(nameof(message));
-            }
+            ArgumentNullException.ThrowIfNull(message);
 
             var color = GetColor(level);
 
@@ -129,7 +126,7 @@ namespace NuGetMirror
         /// </summary>
         internal static string GetAssemblyName()
         {
-            return GetAssembly().GetName().Name;
+            return GetAssembly().GetName().Name!;
         }
 
         /// <summary>
@@ -137,7 +134,7 @@ namespace NuGetMirror
         /// </summary>
         internal static Version GetAssemblyVersion()
         {
-            return GetAssembly().GetName().Version;
+            return GetAssembly().GetName().Version!;
         }
 
         /// <summary>
@@ -156,7 +153,7 @@ namespace NuGetMirror
         {
             if (string.Equals("--debug", args?.FirstOrDefault(), StringComparison.OrdinalIgnoreCase))
             {
-                args = args.Skip(1).ToArray();
+                args = args!.Skip(1).ToArray();
 
 #if IS_DESKTOP
                 Console.WriteLine($"Waiting for debugger to attach on process: {Process.GetCurrentProcess().Id}");

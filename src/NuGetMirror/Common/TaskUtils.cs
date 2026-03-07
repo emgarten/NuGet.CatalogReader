@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace NuGetMirror
 {
-    internal class TaskUtils
+    internal static class TaskUtils
     {
         /// <summary>
         /// Run tasks in parallel.
@@ -110,7 +110,7 @@ namespace NuGetMirror
             // Create an array for the results, at this point index is the count.
             var results = new R[totalCount];
 
-            List<Task> threads = null;
+            List<Task>? threads = null;
             var taskCount = GetAdditionalThreadCount(maxThreads, totalCount);
 
             if (taskCount > 0)
@@ -120,12 +120,12 @@ namespace NuGetMirror
                 // Create long running tasks to run work on.
                 for (var i = 0; i < taskCount; i++)
                 {
-                    Task task = null;
+                    Task? task = null;
 
                     if (useTaskRun)
                     {
                         // Start a new task
-                        task = Task.Run(() => RunTaskAsync(toRun, results, process, token));
+                        task = Task.Run(() => RunTaskAsync(toRun, results, process, token), token);
                     }
                     else
                     {

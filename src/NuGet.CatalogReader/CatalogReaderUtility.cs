@@ -26,7 +26,7 @@ namespace NuGet.CatalogReader
             return GetHandlerAsync(index, wrapper: null);
         }
 
-        internal static async Task<HttpHandlerResource> GetHandlerAsync(Uri index, HttpMessageHandler wrapper)
+        internal static async Task<HttpHandlerResource> GetHandlerAsync(Uri index, HttpMessageHandler? wrapper)
         {
             var source = Repository.Factory.GetCoreV3(index.AbsoluteUri);
             var handler = await source.GetResourceAsync<HttpHandlerResource>();
@@ -62,7 +62,7 @@ namespace NuGet.CatalogReader
                 }
             }
 
-            var tmp = new FileInfo(Path.Combine(outputFile.Directory.FullName, Guid.NewGuid().ToString()));
+            var tmp = new FileInfo(Path.Combine(outputFile.Directory!.FullName, Guid.NewGuid().ToString()));
 
             try
             {
@@ -131,7 +131,7 @@ namespace NuGet.CatalogReader
                 stream.Position = 0;
             }
 
-            JObject json = null;
+            JObject? json = null;
 
             using (var reader = new StreamReader(stream, Encoding.UTF8, false, 8192, leaveOpen))
             using (var jsonReader = new JsonTextReader(reader))
@@ -142,7 +142,7 @@ namespace NuGet.CatalogReader
                 json = await JObject.LoadAsync(jsonReader, _jsonLoadSettings);
             }
 
-            return json;
+            return json!;
         }
 
         internal static void DeleteDirectoryFiles(string dirPath)

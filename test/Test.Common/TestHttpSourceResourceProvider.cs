@@ -31,9 +31,9 @@ namespace Test.Common
             _fileSystem = fileSystem;
         }
 
-        public override Task<Tuple<bool, INuGetResource>> TryCreate(SourceRepository source, CancellationToken token)
+        public override Task<Tuple<bool, INuGetResource?>> TryCreate(SourceRepository source, CancellationToken token)
         {
-            HttpSourceResource curResource = null;
+            HttpSourceResource? curResource = null;
 
             if (source.PackageSource.IsHttp)
             {
@@ -41,10 +41,10 @@ namespace Test.Common
                     (packageSource) => new HttpSourceResource(CreateSource(source, _fileSystem)));
             }
 
-            return Task.FromResult(new Tuple<bool, INuGetResource>(curResource != null, curResource));
+            return Task.FromResult(new Tuple<bool, INuGetResource?>(curResource != null, curResource));
         }
 
-        private static HttpSource CreateSource(SourceRepository source, PhysicalFileSystem fileSystem)
+        private static TestHttpSource CreateSource(SourceRepository source, PhysicalFileSystem fileSystem)
         {
             Func<Task<HttpHandlerResource>> handlerFactory = () =>
             {
@@ -64,7 +64,7 @@ namespace Test.Common
             return new TestHttpSource(new PackageSource(feedUri.AbsoluteUri), handlerFactory, fileSystem);
         }
 
-        private class TestHttpHandlerResource : HttpHandlerResource
+        private sealed class TestHttpHandlerResource : HttpHandlerResource, IDisposable
         {
             private readonly PhysicalFileSystem _fileSystem;
             private readonly HttpMessageHandler _messageHandler;
@@ -81,9 +81,11 @@ namespace Test.Common
                     new HttpClientHandler();
 
             public override HttpMessageHandler MessageHandler => _messageHandler;
+
+            public void Dispose() => _messageHandler.Dispose();
         }
 
-        private class TestMessageHandler : HttpMessageHandler
+        private sealed class TestMessageHandler : HttpMessageHandler
         {
             private readonly PhysicalFileSystem _fileSystem;
 
@@ -111,7 +113,7 @@ namespace Test.Common
             }
         }
 
-        private class TestHttpContent : HttpContent
+        private sealed class TestHttpContent : HttpContent
         {
             private MemoryStream _stream;
 
@@ -122,7 +124,7 @@ namespace Test.Common
                 _stream.Seek(0, SeekOrigin.Begin);
             }
 
-            protected override Task SerializeToStreamAsync(Stream stream, TransportContext context)
+            protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
             {
                 return _stream.CopyToAsync(stream);
             }
@@ -134,7 +136,7 @@ namespace Test.Common
             }
         }
 
-        private class TestHttpSource : HttpSource
+        private sealed class TestHttpSource : HttpSource
         {
             private PhysicalFileSystem _fileSystem;
 
@@ -161,7 +163,7 @@ namespace Test.Common
                 }
                 else
                 {
-                    return null;
+                    return null!;
                 }
             }
         }

@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using NuGetMirror;
@@ -14,7 +15,7 @@ namespace NuGetMirror
 {
     internal static class ListCommand
     {
-        public static void Register(CommandLineApplication cmdApp, HttpSource httpSource, ILogger log)
+        public static void Register(CommandLineApplication cmdApp, HttpSource? httpSource, ILogger log)
         {
             cmdApp.Command("list", cmd =>
             {
@@ -23,7 +24,7 @@ namespace NuGetMirror
             });
         }
 
-        private static void Run(CommandLineApplication cmd, HttpSource httpSource, ILogger log)
+        private static void Run(CommandLineApplication cmd, HttpSource? httpSource, ILogger log)
         {
             cmd.Description = "List packages from a v3 source.";
 
@@ -48,7 +49,7 @@ namespace NuGetMirror
                     }
 
                     // Attempts to load a configured source (including inactive ones) and fallback to Uri parsing if it fails
-                    Uri index;
+                    Uri? index;
                     var sources = PackageSourceProvider.LoadPackageSources(Settings.LoadDefaultSettings(Environment.CurrentDirectory));
                     var source = sources.FirstOrDefault(o => o.Name == argRoot.Value);
                     if (source != null)
@@ -58,7 +59,7 @@ namespace NuGetMirror
                     }
                     else
                     {
-                        if (!Uri.TryCreate(argRoot.Value, UriKind.Absolute, out index))
+                        if (!Uri.TryCreate(argRoot.Value!, UriKind.Absolute, out index))
                         {
                             // The enumerable is safe to re-iterate because it's a List implementation
                             Debug.Assert(sources is ICollection<PackageSource>, "Sources implementation changed");
@@ -77,12 +78,12 @@ namespace NuGetMirror
 
                     if (start.HasValue())
                     {
-                        startTime = DateTimeOffset.Parse(start.Value());
+                        startTime = DateTimeOffset.Parse(start.Value()!, CultureInfo.InvariantCulture);
                     }
 
                     if (end.HasValue())
                     {
-                        endTime = DateTimeOffset.Parse(end.Value());
+                        endTime = DateTimeOffset.Parse(end.Value()!, CultureInfo.InvariantCulture);
                     }
 
                     if (log is ConsoleLogger consoleLogger)
@@ -99,7 +100,7 @@ namespace NuGetMirror
 
                     // CatalogReader
                     using (var cacheContext = new SourceCacheContext())
-                    using (var catalogReader = new CatalogReader(index, httpSource, cacheContext, TimeSpan.Zero, log))
+                    using (var catalogReader = new CatalogReader(index!, httpSource, cacheContext, TimeSpan.Zero, log))
                     {
                         var entries = await catalogReader.GetFlattenedEntriesAsync(startTime, endTime, CancellationToken.None);
 

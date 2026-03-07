@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -21,7 +22,7 @@ namespace NuGetMirror
     /// </summary>
     internal static class NupkgsCommand
     {
-        public static void Register(CommandLineApplication cmdApp, HttpSource httpSource, ILogger consoleLog)
+        public static void Register(CommandLineApplication cmdApp, HttpSource? httpSource, ILogger consoleLog)
         {
             cmdApp.Command("nupkgs", cmd =>
             {
@@ -30,7 +31,7 @@ namespace NuGetMirror
             });
         }
 
-        private static void Run(CommandLineApplication cmd, HttpSource httpSource, ILogger consoleLog)
+        private static void Run(CommandLineApplication cmd, HttpSource? httpSource, ILogger consoleLog)
         {
             cmd.Description = "Mirror nupkgs to a folder.";
 
@@ -66,7 +67,7 @@ namespace NuGetMirror
                 }
 
                 // Attempts to load a configured source (including inactive ones) and fallback to Uri parsing if it fails
-                Uri index;
+                Uri? index;
                 var sources = PackageSourceProvider.LoadPackageSources(Settings.LoadDefaultSettings(Environment.CurrentDirectory));
                 var source = sources.FirstOrDefault(o => o.Name == argRoot.Value);
                 if (source != null)
@@ -76,7 +77,7 @@ namespace NuGetMirror
                 }
                 else
                 {
-                    if (!Uri.TryCreate(argRoot.Value, UriKind.Absolute, out index))
+                    if (!Uri.TryCreate(argRoot.Value!, UriKind.Absolute, out index))
                     {
                         // The enumerable is safe to re-iterate because it's a List implementation
                         Debug.Assert(sources is ICollection<PackageSource>, "Sources implementation changed");
@@ -95,7 +96,7 @@ namespace NuGetMirror
 
                 if (output.HasValue())
                 {
-                    outputPath = output.Value();
+                    outputPath = output.Value()!;
                 }
 
                 var tmpCachePath = Path.Combine(outputPath, ".tmp");
@@ -107,7 +108,7 @@ namespace NuGetMirror
 
                 if (additionalOutput.Values?.Any() == true)
                 {
-                    storagePaths.UnionWith(additionalOutput.Values.Select(e => new DirectoryInfo(e)));
+                    storagePaths.UnionWith(additionalOutput.Values.Select(e => new DirectoryInfo(e!)));
                 }
 
                 // Create all output folders
@@ -155,7 +156,7 @@ namespace NuGetMirror
 
                 if (folderFormat.HasValue())
                 {
-                    switch (folderFormat.Value().ToLowerInvariant())
+                    switch (folderFormat.Value()!.ToLowerInvariant())
                     {
                         case "v2":
                             useV3Format = false;
@@ -171,7 +172,7 @@ namespace NuGetMirror
                 DateTimeOffset start, end;
                 if (startOption.HasValue())
                 {
-                    start = DateTimeOffset.Parse(startOption.Value());
+                    start = DateTimeOffset.Parse(startOption.Value()!, CultureInfo.InvariantCulture);
                 }
                 else
                 {
@@ -180,7 +181,7 @@ namespace NuGetMirror
 
                 if (endOption.HasValue())
                 {
-                    end = DateTimeOffset.Parse(endOption.Value());
+                    end = DateTimeOffset.Parse(endOption.Value()!, CultureInfo.InvariantCulture);
                 }
                 else
                 {
@@ -218,7 +219,7 @@ namespace NuGetMirror
                 {
                     cacheContext.SetTempRoot(tmpCachePath);
 
-                    using (var catalogReader = new CatalogReader(index, httpSource, cacheContext, TimeSpan.Zero, deepLogger))
+                    using (var catalogReader = new CatalogReader(index!, httpSource, cacheContext, TimeSpan.Zero, deepLogger))
                     {
                         // Clear old cache files
                         catalogReader.ClearCache();
@@ -231,7 +232,7 @@ namespace NuGetMirror
                         // Remove all but includes if given
                         if (includeIdOption.HasValue())
                         {
-                            var regex = includeIdOption.Values.Select(s => PatternUtils.WildcardToRegex(s, ignoreCase: true)).ToArray();
+                            var regex = includeIdOption.Values.Select(s => PatternUtils.WildcardToRegex(s!, ignoreCase: true)).ToArray();
 
                             entryQuery = entryQuery.Where(e =>
                                 regex.Any(r => r.IsMatch(e.Id)));
@@ -240,7 +241,7 @@ namespace NuGetMirror
                         // Remove all excludes if given
                         if (excludeIdOption.HasValue())
                         {
-                            var regex = excludeIdOption.Values.Select(s => PatternUtils.WildcardToRegex(s, ignoreCase: true)).ToArray();
+                            var regex = excludeIdOption.Values.Select(s => PatternUtils.WildcardToRegex(s!, ignoreCase: true)).ToArray();
 
                             entryQuery = entryQuery.Where(e =>
                                 regex.All(r => !r.IsMatch(e.Id)));
@@ -286,7 +287,7 @@ namespace NuGetMirror
                             {
                                 var entry = toProcess.Dequeue();
 
-                                Func<CatalogEntry, Task<FileInfo>> getNupkg = null;
+                                Func<CatalogEntry, Task<FileInfo?>>? getNupkg = null;
 
                                 if (useV3Format)
                                 {
@@ -298,7 +299,7 @@ namespace NuGetMirror
                                 }
 
                                 // Queue download task
-                                batch.Enqueue(new Func<Task<NupkgResult>>(() => RunWithRetryAsync(entry, ignoreErrors.HasValue(), getNupkg, log, token)));
+                                batch.Enqueue(new Func<Task<NupkgResult>>(() => RunWithRetryAsync(entry, ignoreErrors.HasValue(), getNupkg!, log, token)));
                             }
 
                             // Run
@@ -314,7 +315,7 @@ namespace NuGetMirror
                                     files.Add(fileName);
                                 }
 
-                                done.Add(result.Entry);
+                                done.Add(result.Entry!);
                             }
 
                             // Write out new files
@@ -423,16 +424,16 @@ namespace NuGetMirror
             return versionFolderResolver.GetPackageFilePath(entry.Id, entry.Version);
         }
 
-        internal static async Task<FileInfo> DownloadNupkgV2Async(
+        internal static async Task<FileInfo?> DownloadNupkgV2Async(
             CatalogEntry entry,
             IEnumerable<DirectoryInfo> storagePaths,
             DownloadMode mode,
             ILogger log,
             CancellationToken token)
         {
-            FileInfo result = null;
+            FileInfo? result = null;
 
-            DirectoryInfo rootDir = null;
+            DirectoryInfo? rootDir = null;
             var lastCreated = DateTimeOffset.MinValue;
 
             // Check if the nupkg already exists on another drive.
@@ -485,7 +486,7 @@ namespace NuGetMirror
             return result;
         }
 
-        internal static async Task<FileInfo> DownloadNupkgV3Async(
+        internal static async Task<FileInfo?> DownloadNupkgV3Async(
             CatalogEntry entry,
             IEnumerable<DirectoryInfo> storagePaths,
             DownloadMode mode,
@@ -493,8 +494,8 @@ namespace NuGetMirror
             ILogger deepLog,
             CancellationToken token)
         {
-            FileInfo result = null;
-            DirectoryInfo rootDir = null;
+            FileInfo? result = null;
+            DirectoryInfo? rootDir = null;
             var lastCreated = DateTimeOffset.MinValue;
 
             // Check if the nupkg already exists on another drive.
@@ -565,7 +566,7 @@ namespace NuGetMirror
         internal static async Task<NupkgResult> RunWithRetryAsync(
             CatalogEntry entry,
             bool ignoreErrors,
-            Func<CatalogEntry, Task<FileInfo>> action,
+            Func<CatalogEntry, Task<FileInfo?>> action,
             ILogger log,
             CancellationToken token)
         {
@@ -613,7 +614,7 @@ namespace NuGetMirror
 
                 if (!success && i < 9)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds((i + 1) * 5));
+                    await Task.Delay(TimeSpan.FromSeconds((i + 1) * 5), token);
                 }
             }
 
@@ -654,11 +655,11 @@ namespace NuGetMirror
         }
 
 
-        internal class NupkgResult
+        internal sealed class NupkgResult
         {
-            public FileInfo Nupkg { get; set; }
+            public FileInfo? Nupkg { get; set; }
 
-            public CatalogEntry Entry { get; set; }
+            public CatalogEntry? Entry { get; set; }
         }
     }
 }

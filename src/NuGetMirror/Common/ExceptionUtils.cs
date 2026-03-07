@@ -43,17 +43,10 @@ namespace NuGetMirror
         ///   [Type] Exception message
         ///   [Type] Exception message
         /// </summary>
-        internal static void LogException(Exception ex, ILogger logger, LogLevel logLevel, bool showType, string message)
+        internal static void LogException(Exception ex, ILogger logger, LogLevel logLevel, bool showType, string? message)
         {
-            if (ex == null)
-            {
-                throw new ArgumentNullException(nameof(ex));
-            }
-
-            if (logger == null)
-            {
-                throw new ArgumentNullException(nameof(logger));
-            }
+            ArgumentNullException.ThrowIfNull(ex);
+            ArgumentNullException.ThrowIfNull(logger);
 
             // Log for debugging
             foreach (var innerEx in GetExceptions(ex))
@@ -89,12 +82,9 @@ namespace NuGetMirror
         ///   - [Type] Exception message
         /// </summary>
         /// <remarks>Displays exceptions top level if no message is given.</remarks>
-        internal static string GetExceptionMessage(Exception ex, bool showType, string message)
+        internal static string GetExceptionMessage(Exception ex, bool showType, string? message)
         {
-            if (ex == null)
-            {
-                throw new ArgumentNullException(nameof(ex));
-            }
+            ArgumentNullException.ThrowIfNull(ex);
 
             var sb = new StringBuilder();
             var hasMessage = !string.IsNullOrEmpty(message);
@@ -128,7 +118,7 @@ namespace NuGetMirror
         /// </summary>
         internal static Exception Unwrap(Exception ex)
         {
-            return GetExceptions(ex).FirstOrDefault();
+            return GetExceptions(ex).FirstOrDefault()!;
         }
 
         /// <summary>
@@ -136,10 +126,7 @@ namespace NuGetMirror
         /// </summary>
         internal static string FormatExceptionWithName(Exception ex)
         {
-            if (ex == null)
-            {
-                throw new ArgumentNullException(nameof(ex));
-            }
+            ArgumentNullException.ThrowIfNull(ex);
 
             return $"[{ex.GetType()}] {ex.Message}";
         }
@@ -157,7 +144,7 @@ namespace NuGetMirror
                 }
                 else if (ex is TargetInvocationException te)
                 {
-                    return GetExceptions(te.InnerException);
+                    return GetExceptions(te.InnerException!);
                 }
                 else
                 {

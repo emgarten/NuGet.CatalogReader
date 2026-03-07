@@ -32,7 +32,7 @@ namespace Test.Common
                     throw new InvalidOperationException("Catalog init failed");
                 }
 
-                if (Directory.GetFiles(nupkgFolder).Any())
+                if (Directory.GetFiles(nupkgFolder).Length > 0)
                 {
                     success = await PushCommand.PushPackages(settings, fileSystem, new List<string>() { nupkgFolder }, false, false, log, CancellationToken.None);
 
@@ -59,7 +59,7 @@ namespace Test.Common
         {
             var sleetConfig = Path.Combine(root, "sleet.json");
 
-            if (Directory.GetFiles(nupkgFolder).Any())
+            if (Directory.GetFiles(nupkgFolder).Length > 0)
             {
                 using (var cache = new LocalCache())
                 {

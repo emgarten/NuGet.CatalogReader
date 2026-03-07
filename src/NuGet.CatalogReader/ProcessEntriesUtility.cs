@@ -9,7 +9,7 @@ namespace NuGet.CatalogReader
 {
     public static class ProcessEntriesUtility
     {
-        public static Task<IReadOnlyList<FileInfo>> DownloadNuspecsAsync(string outputDirectory, DownloadMode mode, int maxConcurrentDownloads, CancellationToken token, IEnumerable<CatalogEntry> entries)
+        public static Task<IReadOnlyList<FileInfo>> DownloadNuspecsAsync(string outputDirectory, DownloadMode mode, int maxConcurrentDownloads, IEnumerable<CatalogEntry> entries, CancellationToken token)
         {
             var entriesArray = entries.ToArray();
 
@@ -21,11 +21,11 @@ namespace NuGet.CatalogReader
             return RunAsync<FileInfo>(
                 apply: e => e.DownloadNuspecAsync(outputDirectory, mode, token),
                 maxThreads: maxConcurrentDownloads,
-                token: token,
-                entries: entriesArray);
+                entries: entriesArray,
+                token: token);
         }
 
-        public static Task<IReadOnlyList<FileInfo>> DownloadNupkgsAsync(string outputDirectory, DownloadMode mode, int maxConcurrentDownloads, CancellationToken token, IEnumerable<CatalogEntry> entries)
+        public static Task<IReadOnlyList<FileInfo>> DownloadNupkgsAsync(string outputDirectory, DownloadMode mode, int maxConcurrentDownloads, IEnumerable<CatalogEntry> entries, CancellationToken token)
         {
             var entriesArray = entries.ToArray();
 
@@ -37,8 +37,8 @@ namespace NuGet.CatalogReader
             return RunAsync<FileInfo>(
                 apply: e => e.DownloadNupkgAsync(outputDirectory, mode, token),
                 maxThreads: maxConcurrentDownloads,
-                token: token,
-                entries: entriesArray);
+                entries: entriesArray,
+                token: token);
         }
 
         /// <summary>
@@ -50,16 +50,17 @@ namespace NuGet.CatalogReader
                       .Select(group => group.Where(e => includePrerelease || !e.Version.IsPrerelease)
                                           .OrderByDescending(e => e.Version)
                                           .FirstOrDefault())
+                      .OfType<CatalogEntry>()
                       .ToArray();
         }
 
         /// <summary>
-        /// 
+        /// Apply an async transform to each entry with throttled concurrency.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="apply">Transform or action to apply to each catalog entry.</param>
         /// <param name="maxThreads">Max threads</param>
-        public static async Task<IReadOnlyList<T>> RunAsync<T>(Func<CatalogEntry, Task<T>> apply, int maxThreads, CancellationToken token, IEnumerable<CatalogEntry> entries)
+        public static async Task<IReadOnlyList<T>> RunAsync<T>(Func<CatalogEntry, Task<T>> apply, int maxThreads, IEnumerable<CatalogEntry> entries, CancellationToken token)
         {
             var entriesArray = entries.ToArray();
 

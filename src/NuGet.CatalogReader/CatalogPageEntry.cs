@@ -41,7 +41,7 @@ namespace NuGet.CatalogReader
             CommitTimeStamp = commitTs;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as CatalogPageEntry);
         }
@@ -56,7 +56,7 @@ namespace NuGet.CatalogReader
             return Uri.GetHashCode();
         }
 
-        public int CompareTo(CatalogPageEntry other)
+        public int CompareTo(CatalogPageEntry? other)
         {
             if (other == null)
             {
@@ -66,9 +66,21 @@ namespace NuGet.CatalogReader
             return CommitTimeStamp.CompareTo(other.CommitTimeStamp);
         }
 
-        public bool Equals(CatalogPageEntry other)
+        public bool Equals(CatalogPageEntry? other)
         {
+            if (other == null)
+            {
+                return false;
+            }
+
             return Uri.Equals(other.Uri);
         }
+
+        public static bool operator ==(CatalogPageEntry? left, CatalogPageEntry? right) => left?.Equals(right) ?? right is null;
+        public static bool operator !=(CatalogPageEntry? left, CatalogPageEntry? right) => !(left == right);
+        public static bool operator <(CatalogPageEntry? left, CatalogPageEntry? right) => left is null ? right is not null : left.CompareTo(right) < 0;
+        public static bool operator <=(CatalogPageEntry? left, CatalogPageEntry? right) => left is null || left.CompareTo(right) <= 0;
+        public static bool operator >(CatalogPageEntry? left, CatalogPageEntry? right) => left is not null && left.CompareTo(right) > 0;
+        public static bool operator >=(CatalogPageEntry? left, CatalogPageEntry? right) => left is null ? right is null : left.CompareTo(right) >= 0;
     }
 }

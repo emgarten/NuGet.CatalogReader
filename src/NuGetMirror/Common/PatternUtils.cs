@@ -11,10 +11,7 @@ namespace NuGetMirror
         /// </summary>
         internal static Regex WildcardToRegex(string pattern, bool ignoreCase)
         {
-            if (pattern == null)
-            {
-                throw new System.ArgumentNullException(nameof(pattern));
-            }
+            System.ArgumentNullException.ThrowIfNull(pattern);
 
             var s = "^" + Regex.Escape(pattern).
                                 Replace("\\*", ".*").

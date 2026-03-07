@@ -102,10 +102,10 @@ namespace NuGet.CatalogReader
         public async Task<List<PackageEntry>> GetPackagesById(string id, CancellationToken token)
         {
             await EnsureServiceIndexAsync(_indexUri, token);
-            var baseUri = _serviceIndex.GetPackageBaseAddressUri();
+            var baseUri = _serviceIndex!.GetPackageBaseAddressUri();
             var index = NuGetv3FeedBuilder.GetPackageBaseAddressIndexUri(baseUri, id);
             var json = await GetJson(index, token);
-            var versions = ((JArray)json["versions"]).Select(e => NuGetVersion.Parse(e.ToString()));
+            var versions = ((JArray)json["versions"]!).Select(e => NuGetVersion.Parse(e.ToString()));
             return versions.Select(e => GetEntry(id, e)).ToList();
         }
 
@@ -174,7 +174,7 @@ namespace NuGet.CatalogReader
         public async Task<ServiceIndexResourceV3> GetServiceIndexAsync(CancellationToken token)
         {
             await EnsureServiceIndexAsync(_indexUri, token);
-            return _serviceIndex;
+            return _serviceIndex!;
         }
 
         protected PackageEntry GetEntry(string id, NuGetVersion version)
@@ -182,7 +182,7 @@ namespace NuGet.CatalogReader
             return new PackageEntry(
                 id,
                 version,
-                _serviceIndex,
+                _serviceIndex!,
                 GetJson,
                 GetNuspec,
                 GetNupkg);

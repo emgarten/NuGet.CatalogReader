@@ -1,5 +1,8 @@
 # Release Notes
 
+## 4.0.0
+* Add net10.0 support, remove net6.0
+
 ## 3.3.2
 * Fix for download nuspec helpers [PR](https://github.com/emgarten/NuGet.CatalogReader/pull/33)
 

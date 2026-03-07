@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Linq;
 using NuGet.Versioning;
 
@@ -8,7 +9,7 @@ namespace NuGet.CatalogReader
     /// <summary>
     /// Cache strings, dates, and versions to reduce memory.
     /// </summary>
-    internal class ReferenceCache
+    internal sealed class ReferenceCache
     {
         private ConcurrentDictionary<string, string> _stringCache = new ConcurrentDictionary<string, string>(StringComparer.Ordinal);
         private ConcurrentDictionary<DateTimeOffset, DateTimeOffset> _dateCache = new ConcurrentDictionary<DateTimeOffset, DateTimeOffset>();
@@ -18,7 +19,7 @@ namespace NuGet.CatalogReader
         // All catalog versions are normalized so the original string is not a concern.
         private ConcurrentDictionary<NuGetVersion, NuGetVersion> _versionCache = new ConcurrentDictionary<NuGetVersion, NuGetVersion>(VersionComparer.VersionReleaseMetadata);
 
-        internal string GetString(string s)
+        internal string? GetString(string? s)
         {
             if (ReferenceEquals(s, null))
             {
@@ -35,7 +36,7 @@ namespace NuGet.CatalogReader
 
         internal DateTimeOffset GetDate(string s)
         {
-            var date = DateTimeOffset.Parse(s);
+            var date = DateTimeOffset.Parse(s, CultureInfo.InvariantCulture);
 
             return _dateCache.GetOrAdd(date, date);
         }
@@ -51,7 +52,7 @@ namespace NuGet.CatalogReader
             var systemVersion = GetSystemVersion(version);
 
             // Use cached strings for the version parts
-            var releaseLabels = version.ReleaseLabels.Select(label => GetString(label));
+            var releaseLabels = version.ReleaseLabels.Select(label => GetString(label)!);
 
             // Rebuild the version without the original string value
             return new NuGetVersion(systemVersion, releaseLabels, GetString(version.Metadata), originalVersion: null);

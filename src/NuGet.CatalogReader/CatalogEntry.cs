@@ -105,7 +105,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="other">CatalogEntry</param>
         /// <returns>Comparison int</returns>
-        public int CompareTo(CatalogEntry other)
+        public int CompareTo(CatalogEntry? other)
         {
             if (other == null)
             {
@@ -129,7 +129,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="obj">Other</param>
         /// <returns>True if equal</returns>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as CatalogEntry);
         }
@@ -139,7 +139,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="other">Other</param>
         /// <returns>True if equal</returns>
-        public bool Equals(CatalogEntry other)
+        public bool Equals(CatalogEntry? other)
         {
             if (ReferenceEquals(this, other))
             {

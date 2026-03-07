@@ -87,9 +87,9 @@ namespace NuGet.CatalogReader.Tests
                     var entry = entries.FirstOrDefault();
 
                     // Assert
-                    Assert.Equal(1, entries.Count);
-                    Assert.Equal(1, flatEntries.Count);
-                    Assert.Equal(1, set.Count);
+                    Assert.Single(entries);
+                    Assert.Single(flatEntries);
+                    Assert.Single(set);
 
                     Assert.Equal("a", entry.Id);
                     Assert.Equal("1.0.0", entry.Version.ToNormalizedString());
@@ -363,8 +363,8 @@ namespace NuGet.CatalogReader.Tests
                     // Assert
                     // 3 adds, 2 removes
                     Assert.Equal(5, entries.Count);
-                    Assert.Equal(1, flatEntries.Count);
-                    Assert.Equal(1, set.Count);
+                    Assert.Single(flatEntries);
+                    Assert.Single(set);
 
                     Assert.Equal("a", entry.Id);
                     Assert.Equal("1.0.0", entry.Version.ToNormalizedString());

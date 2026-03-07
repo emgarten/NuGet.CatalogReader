@@ -98,7 +98,7 @@ namespace NuGet.CatalogReader
             var serviceIndex = await GetServiceIndexAsync(token);
             var packageIndexUri = serviceIndex.GetSleetPackageIndexUrl();
             var json = await GetJson(packageIndexUri, token);
-            foreach (var child in ((JObject)json["packages"]).Properties())
+            foreach (var child in ((JObject)json["packages"]!).Properties())
             {
                 var id = child.Name;
                 var versions = (JArray)child.Value;

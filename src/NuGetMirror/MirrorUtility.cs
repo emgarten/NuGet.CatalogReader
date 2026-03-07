@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using Newtonsoft.Json;
@@ -35,7 +36,7 @@ namespace NuGetMirror
             {
                 var json = LoadJson(file.OpenRead());
 
-                return DateTimeOffset.Parse(json["cursor"].ToObject<string>());
+                return DateTimeOffset.Parse(json["cursor"]!.ToObject<string>()!, CultureInfo.InvariantCulture);
             }
 
             return DateTimeOffset.MinValue;
@@ -75,7 +76,7 @@ namespace NuGetMirror
             var folderProp = typeof(SourceCacheContext)
                .GetField("_generatedTempFolder", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 
-            folderProp.SetValue(context, path);
+            folderProp!.SetValue(context, path);
         }
     }
 }
