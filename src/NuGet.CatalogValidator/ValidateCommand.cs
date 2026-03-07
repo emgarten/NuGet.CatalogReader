@@ -21,7 +21,7 @@ namespace NuGet.CatalogValidator
     /// </summary>
     internal static class ValidateCommand
     {
-        public static void Register(CommandLineApplication cmdApp, HttpSource httpSource, ILogger consoleLog)
+        public static void Register(CommandLineApplication cmdApp, HttpSource? httpSource, ILogger consoleLog)
         {
             cmdApp.Command("validate", cmd =>
             {
@@ -30,7 +30,7 @@ namespace NuGet.CatalogValidator
             });
         }
 
-        private static void Run(CommandLineApplication cmd, HttpSource httpSource, ILogger consoleLog)
+        private static void Run(CommandLineApplication cmd, HttpSource? httpSource, ILogger consoleLog)
         {
             cmd.Description = "Validate a v3 feed.";
 
@@ -66,7 +66,7 @@ namespace NuGet.CatalogValidator
 
                 if (delay.HasValue())
                 {
-                    if (int.TryParse(delay.Value(), out int x))
+                    if (int.TryParse(delay.Value(), out var x))
                     {
                         var delayMinutes = Math.Max(0, x);
                         delayTime = TimeSpan.FromMinutes(delayMinutes);
@@ -81,7 +81,7 @@ namespace NuGet.CatalogValidator
 
                 if (maxThreadsOption.HasValue())
                 {
-                    if (int.TryParse(maxThreadsOption.Value(), out int x))
+                    if (int.TryParse(maxThreadsOption.Value(), out var x))
                     {
                         maxThreads = Math.Max(1, x);
                     }
@@ -228,9 +228,10 @@ namespace NuGet.CatalogValidator
             var task = await Task.WhenAny(tasks);
             tasks.Remove(task);
 
-            if (!task.Result.Success)
+            var result = await task;
+            if (!result.Success)
             {
-                results.Add(task.Result);
+                results.Add(result);
             }
         }
 
@@ -255,31 +256,35 @@ namespace NuGet.CatalogValidator
             {
                 try
                 {
-                    var request = new HttpRequestMessage(HttpMethod.Head, uri);
-
-                    var response = await httpClient.SendAsync(request, token);
-
-                    return response.StatusCode;
+                    using (var request = new HttpRequestMessage(HttpMethod.Head, uri))
+                    using (var response = await httpClient.SendAsync(request, token))
+                    {
+                        return response.StatusCode;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
                 }
                 catch
                 {
                     // Try again.
-                    await Task.Delay(100);
+                    await Task.Delay(100, token);
                 }
             }
 
             return HttpStatusCode.ServiceUnavailable;
         }
 
-        internal class ValidationResult
+        internal sealed class ValidationResult
         {
             public bool Success { get; set; }
 
             public ValidationType Type { get; set; }
 
-            public string Message { get; set; }
+            public required string Message { get; set; }
 
-            public CatalogEntry Entry { get; set; }
+            public required CatalogEntry Entry { get; set; }
         }
 
         internal enum ValidationType

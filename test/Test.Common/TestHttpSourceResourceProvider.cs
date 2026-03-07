@@ -134,6 +134,16 @@ namespace Test.Common
                 length = (long)_stream.Length;
                 return true;
             }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    _stream?.Dispose();
+                }
+
+                base.Dispose(disposing);
+            }
         }
 
         private sealed class TestHttpSource : HttpSource

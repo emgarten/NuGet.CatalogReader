@@ -1,6 +1,6 @@
 ﻿namespace NuGet.CatalogValidator
 {
-    internal class Constants
+    internal static class Constants
     {
         internal const string HelpOption = "-h|--help";
     }

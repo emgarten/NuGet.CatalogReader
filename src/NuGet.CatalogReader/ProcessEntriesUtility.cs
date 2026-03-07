@@ -76,7 +76,7 @@ namespace NuGet.CatalogReader
                 {
                     var task = await Task.WhenAny(tasks);
                     tasks.Remove(task);
-                    files.Add(task.Result);
+                    files.Add(await task);
                 }
 
                 tasks.Add(apply(entry));
@@ -87,7 +87,7 @@ namespace NuGet.CatalogReader
             {
                 var task = await Task.WhenAny(tasks);
                 tasks.Remove(task);
-                files.Add(task.Result);
+                files.Add(await task);
             }
 
             return files;

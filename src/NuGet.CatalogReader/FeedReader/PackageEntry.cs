@@ -166,6 +166,11 @@ namespace NuGet.CatalogReader
                 throw new InvalidOperationException($"Nuspec not found: {NuspecUri}");
             }
 
+            if (reader.Xml == null)
+            {
+                throw new InvalidOperationException($"Nuspec XML content is null: {NuspecUri}");
+            }
+
             var path = new FileInfo(Path.Combine(outputDirectory, $"{FileBaseName}.nuspec".ToLowerInvariant()));
 
             File.WriteAllText(path.FullName, reader.Xml.ToString());

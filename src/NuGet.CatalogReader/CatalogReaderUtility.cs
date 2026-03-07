@@ -98,7 +98,7 @@ namespace NuGet.CatalogReader
                     return reader.NuspecReader != null;
                 }
             }
-            catch
+            catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or IOException)
             {
             }
 
@@ -157,7 +157,7 @@ namespace NuGet.CatalogReader
                         {
                             File.Delete(file);
                         }
-                        catch
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                         {
                             // Ignore and skip
                         }
@@ -170,7 +170,7 @@ namespace NuGet.CatalogReader
                     }
                 }
             }
-            catch
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 // Ignore and skip
             }

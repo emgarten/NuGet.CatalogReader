@@ -10,7 +10,7 @@ using NuGet.Versioning;
 
 namespace NuGet.CatalogValidator
 {
-    public class Program
+    public static class Program
     {
         public static int Main(string[] args)
         {
@@ -32,7 +32,7 @@ namespace NuGet.CatalogValidator
             return MainCore(args, httpSource: null, log: log);
         }
 
-        public static Task<int> MainCore(string[] args, HttpSource httpSource, ILogger log)
+        public static Task<int> MainCore(string[] args, HttpSource? httpSource, ILogger log)
         {
             CmdUtils.LaunchDebuggerIfSet(ref args, log);
 
@@ -75,6 +75,7 @@ namespace NuGet.CatalogValidator
 
         private static void Configure()
         {
+#if NET8_0
             // Set connection limit
             if (!RuntimeEnvironmentHelper.IsMono)
             {
@@ -87,10 +88,8 @@ namespace NuGet.CatalogValidator
             }
 
             // Limit SSL
-            ServicePointManager.SecurityProtocol =
-                SecurityProtocolType.Tls |
-                SecurityProtocolType.Tls11 |
-                SecurityProtocolType.Tls12;
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+#endif
 
             UserAgent.SetUserAgentString(new UserAgentStringBuilder("NuGet.CatalogValidator"));
         }

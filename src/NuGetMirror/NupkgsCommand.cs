@@ -321,7 +321,8 @@ namespace NuGetMirror
                             // Write out new files
                             if (files.Count > 0)
                             {
-                                using (var newFileWriter = new StreamWriter(new FileStream(outputFilesInfo.FullName, FileMode.Append, FileAccess.Write)))
+                                using (var fileStream = new FileStream(outputFilesInfo.FullName, FileMode.Append, FileAccess.Write))
+                                using (var newFileWriter = new StreamWriter(fileStream))
                                 {
                                     foreach (var file in files)
                                     {
