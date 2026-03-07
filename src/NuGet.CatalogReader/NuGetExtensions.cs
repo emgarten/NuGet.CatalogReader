@@ -75,9 +75,18 @@ namespace NuGet.CatalogReader
             return source.GetAsync(request, ProcessResult, log, token);
         }
 
-        private static Task<HttpSourceResult> ProcessResult(HttpSourceResult result)
+        private static async Task<HttpSourceResult> ProcessResult(HttpSourceResult result)
         {
-            return Task.FromResult(result);
+            // Copy the stream before HttpSource.GetAsync disposes the original HttpSourceResult.
+            if (result.Stream != null)
+            {
+                var copy = new MemoryStream();
+                await result.Stream.CopyToAsync(copy);
+                copy.Position = 0;
+                return new HttpSourceResult(HttpSourceResultStatus.OpenedFromDisk, result.CacheFile, copy);
+            }
+
+            return new HttpSourceResult(result.Status);
         }
 
         private static string GetHashKey(Uri uri)

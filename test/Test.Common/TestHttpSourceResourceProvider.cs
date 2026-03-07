@@ -96,7 +96,7 @@ namespace Test.Common
 
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
-                var file = (PhysicalFile)_fileSystem.Get(request.RequestUri);
+                var file = (PhysicalFile)_fileSystem.Get(request.RequestUri!);
 
                 if (!await file.Exists(NullLogger.Instance, cancellationToken))
                 {

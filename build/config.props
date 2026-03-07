@@ -1,11 +1,11 @@
 <Project ToolsVersion="15.0">
   <!-- Dependency versions -->
   <PropertyGroup>
-    <NuGetPackageVersion>6.12.1</NuGetPackageVersion>
-    <CommandLineUtilsVersion>4.1.1</CommandLineUtilsVersion>
+    <NuGetPackageVersion>7.3.0</NuGetPackageVersion>
+    <CommandLineUtilsVersion>5.0.1</CommandLineUtilsVersion>
     <NuGetTestHelpersVersion>2.1.38</NuGetTestHelpersVersion>
-    <SleetVersion>5.2.12</SleetVersion>
-    <JsonVersion>13.0.3</JsonVersion>
+    <SleetVersion>7.1.0</SleetVersion>
+    <JsonVersion>13.0.4</JsonVersion>
   </PropertyGroup>
 
   <!-- Config -->
