@@ -297,7 +297,7 @@ namespace NuGet.CatalogReader
         {
             if (other == null)
             {
-                return -1;
+                return 1;
             }
 
             var result = StringComparer.OrdinalIgnoreCase.Compare(Id, other.Id);
