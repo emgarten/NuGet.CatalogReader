@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using NuGetMirror;
 using McMaster.Extensions.CommandLineUtils;
@@ -14,6 +15,8 @@ namespace NuGetMirror
     {
         public static int Main(string[] args)
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            
             var logLevel = LogLevel.Information;
 
             if (CmdUtils.IsDebugModeEnabled())
