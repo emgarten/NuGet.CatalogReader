@@ -1,15 +1,13 @@
 using System.Threading.Tasks;
-using NuGetMirror;
 using NuGet.Common;
 
 namespace NuGetMirror
 {
     public class ConsoleLogger : LoggerBase
     {
-        private static readonly object _lockObj = new object();
+        private static readonly object _lockObj = new();
 
-        public ConsoleLogger()
-            : this(LogLevel.Debug)
+        public ConsoleLogger() : this(LogLevel.Debug)
         {
         }
 
@@ -20,7 +18,9 @@ namespace NuGetMirror
 
         public override void Log(ILogMessage message)
         {
-            if ((int)message.Level >= (int)VerbosityLevel)
+            ArgumentNullException.ThrowIfNull(message);
+
+            if (message.Level >= VerbosityLevel)
             {
                 CmdUtils.LogToConsole(message.Level, message.Message);
             }
@@ -29,8 +29,7 @@ namespace NuGetMirror
         public override Task LogAsync(ILogMessage message)
         {
             Log(message);
-
-            return Task.FromResult(0);
+            return Task.CompletedTask;
         }
     }
 }
