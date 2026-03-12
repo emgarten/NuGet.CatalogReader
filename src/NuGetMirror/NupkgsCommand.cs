@@ -564,58 +564,47 @@ namespace NuGetMirror
             return result;
         }
 
-        internal static async Task<NupkgResult> RunWithRetryAsync(
-            CatalogEntry entry,
-            bool ignoreErrors,
-            Func<CatalogEntry, Task<FileInfo?>> action,
-            ILogger log,
-            CancellationToken token)
+        private static async Task<NupkgResult> RunWithRetryAsync(
+    CatalogEntry entry,
+    bool ignoreErrors,
+    Func<CatalogEntry, Task<FileInfo?>> action,
+    ILogger log,
+    CancellationToken token)
         {
             var success = false;
-            var result = new NupkgResult()
+            var result = new NupkgResult
             {
                 Entry = entry
             };
 
-            // Retry up to 10 times.
             for (var i = 0; !success && i < 10 && !token.IsCancellationRequested; i++)
             {
                 try
                 {
-                    // Download
                     result.Nupkg = await action(entry);
-
                     success = true;
                 }
                 catch (HttpRequestException ex) when (ex.Message.Contains("404"))
                 {
                     var message = $"Unable to download {entry.Id} {entry.Version.ToFullString()}";
-                    ExceptionUtils.LogException(ex, log, LogLevel.Warning, showType: true, message: message);
-
-                    // Ignore missing packages, this is an issue with the feed.
+                    ExceptionUtils.LogException(ex, log, LogLevel.Warning, true, message);
                     success = true;
                 }
                 catch (Exception ex) when (i < 9)
                 {
-                    // Log a warning and retry
                     var message = $"Unable to download {entry.Id} {entry.Version.ToFullString()}. Retrying...";
-                    ExceptionUtils.LogException(ex, log, LogLevel.Warning, showType: true, message: message);
+                    ExceptionUtils.LogException(ex, log, LogLevel.Warning, true, message);
+                    await Task.Delay(TimeSpan.FromSeconds((i + 1) * 5), token);
                 }
                 catch (Exception ex)
                 {
-                    // Log an error and fail
                     var message = $"Unable to download {entry.Id} {entry.Version.ToFullString()}";
-                    ExceptionUtils.LogException(ex, log, LogLevel.Error, showType: true, message: message);
+                    ExceptionUtils.LogException(ex, log, LogLevel.Error, true, message);
 
                     if (!ignoreErrors)
                     {
                         throw;
                     }
-                }
-
-                if (!success && i < 9)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds((i + 1) * 5), token);
                 }
             }
 
@@ -627,15 +616,25 @@ namespace NuGetMirror
         /// </summary>
         private static long GetFreeSpace(DirectoryInfo path)
         {
-            var root = Path.GetPathRoot(path.FullName);
-
-            foreach (var drive in DriveInfo.GetDrives())
+            try
             {
-                if (drive.IsReady && StringComparer.OrdinalIgnoreCase.Equals(root, drive.Name))
+                var root = Path.GetPathRoot(path.FullName);
+
+                foreach (var drive in DriveInfo.GetDrives())
                 {
-                    return drive.TotalFreeSpace;
+                    if (drive.IsReady &&
+                        !string.IsNullOrEmpty(root) &&
+                        string.Equals(root, drive.Name, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return drive.TotalFreeSpace;
+                    }
                 }
             }
+            catch
+            {
+                // Ignore errors when getting drive info
+            }
+
             return -1;
         }
 
@@ -644,15 +643,18 @@ namespace NuGetMirror
         /// </summary>
         private static DirectoryInfo GetPathWithTheMostFreeSpace(IEnumerable<DirectoryInfo> paths)
         {
-            if (paths.Count() == 1)
+            var pathList = paths.ToList();
+
+            if (pathList.Count == 1)
             {
-                return paths.First();
+                return pathList[0];
             }
 
-            return paths.Select(e => new KeyValuePair<DirectoryInfo, long>(e, GetFreeSpace(e)))
-                 .OrderByDescending(e => e.Value)
-                 .FirstOrDefault()
-                 .Key;
+            return pathList
+                .Select(e => new KeyValuePair<DirectoryInfo, long>(e, GetFreeSpace(e)))
+                .Where(kvp => kvp.Value >= 0)
+                .OrderByDescending(kvp => kvp.Value)
+                .FirstOrDefault().Key ?? pathList[0];
         }
 
 
