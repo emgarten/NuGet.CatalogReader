@@ -1,7 +1,6 @@
 using System;
-using System.Net;
+using System.Text;
 using System.Threading.Tasks;
-using NuGetMirror;
 using McMaster.Extensions.CommandLineUtils;
 using NuGet.Common;
 using NuGet.Protocol;
@@ -14,35 +13,35 @@ namespace NuGetMirror
     {
         public static int Main(string[] args)
         {
-            var logLevel = LogLevel.Information;
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            if (CmdUtils.IsDebugModeEnabled())
-            {
-                logLevel = LogLevel.Debug;
-            }
+            var logLevel = CmdUtils.IsDebugModeEnabled()
+                ? LogLevel.Debug
+                : LogLevel.Information;
 
             var log = new ConsoleLogger(logLevel);
 
-            var task = MainCore(args, log);
-            return task.Result;
+            return MainCore(args, log).GetAwaiter().GetResult();
         }
 
-        public static Task<int> MainCore(string[] args, ILogger log)
+        public static async Task<int> MainCore(string[] args, ILogger log)
         {
-            return MainCore(args, httpSource: null, log: log);
+            return await MainCore(args, httpSource: null, log: log);
         }
 
-        public static Task<int> MainCore(string[] args, HttpSource? httpSource, ILogger log)
+        public static async Task<int> MainCore(string[] args, HttpSource? httpSource, ILogger log)
         {
             CmdUtils.LaunchDebuggerIfSet(ref args, log);
 
-            var app = new CommandLineApplication()
+            var app = new CommandLineApplication
             {
                 Name = "NuGetMirror",
                 FullName = "nuget mirror"
             };
+
             app.HelpOption(Constants.HelpOption);
-            app.VersionOption("--version", (new NuGetVersion(CmdUtils.GetAssemblyVersion())).ToNormalizedString());
+            app.VersionOption("--version",
+                new NuGetVersion(CmdUtils.GetAssemblyVersion()).ToNormalizedString());
             app.Description = "Mirror a nuget v3 feed.";
 
             Configure();
@@ -56,41 +55,25 @@ namespace NuGetMirror
                 return 1;
             });
 
-            var exitCode = 1;
-
             try
             {
-                exitCode = app.Execute(args);
+                return await Task.FromResult(app.Execute(args));
             }
             catch (CommandParsingException ex)
             {
-                ex.Command.ShowHelp();
+                ex.Command?.ShowHelp();
+                return 1;
             }
             catch (Exception ex)
             {
                 ExceptionUtils.LogException(ex, log);
+                return 1;
             }
-
-            return Task.FromResult(exitCode);
         }
 
         private static void Configure()
         {
-#if NET6_0 || NET8_0
-            // Set connection limit
-            if (!RuntimeEnvironmentHelper.IsMono)
-            {
-                ServicePointManager.DefaultConnectionLimit = 64;
-            }
-            else
-            {
-                // Keep mono limited to a single download to avoid issues.
-                ServicePointManager.DefaultConnectionLimit = 1;
-            }
-
-            // Limit SSL
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-#endif
+            // Настройки для .NET 8/9/10
 
             var userAgent = new UserAgentStringBuilder("NuGetMirror");
             UserAgent.SetUserAgentString(userAgent);
