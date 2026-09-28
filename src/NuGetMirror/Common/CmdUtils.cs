@@ -155,12 +155,7 @@ namespace NuGetMirror
             {
                 args = args!.Skip(1).ToArray();
 
-#if IS_DESKTOP
-                Console.WriteLine($"Waiting for debugger to attach on process: {Process.GetCurrentProcess().Id}");
-                Console.ReadLine();
-#else
                 Debugger.Launch();
-#endif
             }
         }
     }

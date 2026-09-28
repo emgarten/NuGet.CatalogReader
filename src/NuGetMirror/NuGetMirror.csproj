@@ -1,44 +1,22 @@
-<Project ToolsVersion="15.0">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common\common.props" />
+<Project>
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common.props" />
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <OutputType>Exe</OutputType>
     <Description>A dotnet tool for mirroring nuget.org and downloading packages to disk.</Description>
-    <ToolCommandName>nugetmirror</ToolCommandName>
-    <PackProject>true</PackProject>
-    <PublishProject>true</PublishProject>
-    <SkipDocs>true</SkipDocs>
-    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-    <IsTool>true</IsTool>
     <PackAsTool>true</PackAsTool>
-  </PropertyGroup>
-
-  <!-- exe settings -->
-  <PropertyGroup Condition=" '$(PublishSingleFile)' == 'true' ">
-    <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>true</SelfContained>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <PublishTrimmed>true</PublishTrimmed>
-    <PublishReadyToRun>true</PublishReadyToRun>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <ToolCommandName>nugetmirror</ToolCommandName>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="McMaster.Extensions.CommandLineUtils" Version="$(CommandLineUtilsVersion)" />
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NuGet.CatalogReader\NuGet.CatalogReader.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Common\" />
-  </ItemGroup>
-  <Import Project="$(BuildCommonDirectory)\common.targets" />
 
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>

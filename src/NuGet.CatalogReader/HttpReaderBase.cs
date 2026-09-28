@@ -34,7 +34,7 @@ namespace NuGet.CatalogReader
         /// <summary>
         /// Http cache location
         /// </summary>
-        public string HttpCacheFolder => _cacheContext.RootTempFolder;
+        public string HttpCacheFolder => _cacheContext.RootTempFolder!;
 
         /// <summary>
         /// HttpReaderBase

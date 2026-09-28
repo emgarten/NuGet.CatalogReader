@@ -21,13 +21,13 @@ namespace Test.Common
         public static string GetPath(string relativePath)
         {
             relativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-            var root = new DirectoryInfo(Directory.GetCurrentDirectory());
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
 
             while (root != null)
             {
                 var path = Path.Combine(root.FullName, relativePath);
 
-                if (File.Exists(path))
+                if (File.Exists(path) || Directory.Exists(path))
                 {
                     return path;
                 }
@@ -107,11 +107,7 @@ namespace Test.Common
             {
                 foreach (var envVar in envVars)
                 {
-#if !IS_CORECLR
-                    processInfo.EnvironmentVariables[envVar.Key] = envVar.Value;
-#else
                     processInfo.Environment[envVar.Key] = envVar.Value;
-#endif
                 }
             }
         }

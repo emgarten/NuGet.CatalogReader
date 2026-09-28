@@ -78,7 +78,7 @@ namespace NuGet.CatalogReader
             }
 
             // Open the cache file if the stream does not exist.
-            return File.OpenRead(result.CacheFile);
+            return File.OpenRead(result.CacheFile!);
         }
 
         /// <summary>

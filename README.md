@@ -228,7 +228,7 @@ Clone the repository and run the build script for your platform:
 ./build.ps1
 ```
 
-The build script will install the required .NET SDKs locally, restore packages, build, pack, and run tests.
+The build script uses `dotnet` from your PATH if it has the SDK from `global.json` and the .NET 8 and 9 runtimes, otherwise it installs them to `.dotnet`. It then builds, packs, and runs the tests.
 
 ## Contributing
 

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
+using AwesomeAssertions;
 using NuGet.Common;
 using NuGet.Packaging.Core;
 using NuGet.Protocol;
@@ -49,7 +49,7 @@ namespace NuGetMirror.Tests
 
                 exitCode.Should().Be(0);
 
-                var results = LocalFolderUtility.GetPackagesV2(nupkgsOutFolder, catalogLog).ToList();
+                var results = LocalFolderUtility.GetPackagesV2(nupkgsOutFolder, catalogLog, TestContext.Current.CancellationToken).ToList();
 
                 results.Select(e => e.Identity).Should().BeEquivalentTo(new[] { new PackageIdentity("a", NuGetVersion.Parse("1.0.0")) });
 
@@ -94,7 +94,7 @@ namespace NuGetMirror.Tests
 
                 exitCode.Should().Be(0);
 
-                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
+                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog, TestContext.Current.CancellationToken).ToList();
 
                 results.Select(e => e.Identity).Should().BeEquivalentTo(new[] { new PackageIdentity("a", NuGetVersion.Parse("1.0.0")) });
 
@@ -145,7 +145,7 @@ namespace NuGetMirror.Tests
 
                 exitCode.Should().Be(0);
 
-                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
+                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog, TestContext.Current.CancellationToken).ToList();
 
                 results.Select(e => e.Identity).Should().BeEquivalentTo(
                     new[] {
@@ -192,7 +192,7 @@ namespace NuGetMirror.Tests
 
                 exitCode.Should().Be(0);
 
-                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
+                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog, TestContext.Current.CancellationToken).ToList();
 
                 results.Select(e => e.Identity).Should().BeEquivalentTo(
                     new[] {
@@ -242,7 +242,7 @@ namespace NuGetMirror.Tests
                 var errors = log.GetMessages(LogLevel.Error);
                 exitCode.Should().Be(0, errors);
 
-                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
+                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog, TestContext.Current.CancellationToken).ToList();
 
                 results.Select(e => e.Identity).Should().BeEquivalentTo(expected);
 
@@ -289,7 +289,7 @@ namespace NuGetMirror.Tests
 
                 exitCode.Should().Be(0);
 
-                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog).ToList();
+                var results = LocalFolderUtility.GetPackagesV3(nupkgsOutFolder, catalogLog, TestContext.Current.CancellationToken).ToList();
 
                 results.Select(e => e.Identity).Should().BeEquivalentTo(
                     new[] {

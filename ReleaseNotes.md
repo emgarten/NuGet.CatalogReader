@@ -1,5 +1,8 @@
 # Release Notes
 
+## 4.0.1
+* Update NuGet.* packages to 7.9.0 to address advisory GHSA-g4vj-cjjj-v7hg
+
 ## 4.0.0
 * Add net10.0 support, remove net6.0
 

@@ -29,7 +29,7 @@ namespace NuGet.CatalogReader
 
         private static Task<JObject> ProcessJson(HttpSourceResult result)
         {
-            return CatalogReaderUtility.LoadJsonAsync(result.Stream, false);
+            return CatalogReaderUtility.LoadJsonAsync(result.Stream!, false);
         }
 
         internal static Task<NuspecReader> GetNuspecAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
@@ -53,7 +53,7 @@ namespace NuGet.CatalogReader
 
         private static Task<NuspecReader> ProcessNuspec(HttpSourceResult result)
         {
-            return Task.FromResult(new NuspecReader(result.Stream));
+            return Task.FromResult(new NuspecReader(result.Stream!));
         }
 
         internal static Task<HttpSourceResult> GetNupkgAsync(this HttpSource source, Uri uri, HttpSourceCacheContext cacheContext, ILogger log, CancellationToken token)
