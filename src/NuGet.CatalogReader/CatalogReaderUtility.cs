@@ -29,7 +29,7 @@ namespace NuGet.CatalogReader
         internal static async Task<HttpHandlerResource> GetHandlerAsync(Uri index, HttpMessageHandler? wrapper)
         {
             var source = Repository.Factory.GetCoreV3(index.AbsoluteUri);
-            var handler = await source.GetResourceAsync<HttpHandlerResource>();
+            var handler = (await source.GetResourceAsync<HttpHandlerResource>())!;
 
             if (wrapper != null)
             {

@@ -1,19 +1,21 @@
-﻿<Project ToolsVersion="15.0">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common\test.props" />
+<Project>
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\test.props" />
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="NuGet.Protocol" Version="$(NuGetPackageVersion)" />
-    <PackageReference Include="NuGet.Test.Helpers" Version="$(NuGetTestHelpersVersion)" />
-    <PackageReference Include="SleetLib" Version="$(SleetVersion)" />
+    <PackageReference Include="NuGet.Protocol" />
+    <PackageReference Include="NuGet.Test.Helpers" />
+    <PackageReference Include="SleetLib" />
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\NuGetMirror\NuGetMirror.csproj" />
     <ProjectReference Include="..\Test.Common\Test.Common.csproj" />
   </ItemGroup>
-  <Import Project="$(BuildCommonDirectory)\common.targets" />
+
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>

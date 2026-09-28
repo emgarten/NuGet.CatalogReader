@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # Dependencies are added to the first group they match
+      test:
+        patterns:
+          - "AwesomeAssertions"
+          - "Microsoft.NET.Test.Sdk"
+          - "Microsoft.Testing.*"
+          - "NuGet.Test.Helpers"
+          - "SleetLib"
+          - "xunit*"
+      analyzers:
+        patterns:
+          - "Roslynator.*"
+          - "ToStringWithoutOverrideAnalyzer"
+      nuget-client:
+        patterns:
+          - "NuGet.*"
+
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"

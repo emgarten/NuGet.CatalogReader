@@ -1,22 +1,20 @@
-<Project ToolsVersion="15.0">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common\common.props" />
+<Project>
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), 'README.md'))\build\common.props" />
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
-    <IsTestProject>false</IsTestProject>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NuGet.Test.Helpers" Version="$(NuGetTestHelpersVersion)" />
-    <PackageReference Include="SleetLib" Version="$(SleetVersion)" />
-    <PackageReference Include="Xunit" Version="$(XunitVersion)" />
+    <PackageReference Include="NuGet.Test.Helpers" />
+    <PackageReference Include="SleetLib" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\NuGet.CatalogReader\NuGet.CatalogReader.csproj" />
   </ItemGroup>
 
-  <Import Project="$(BuildCommonDirectory)\common.targets" />
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>
