@@ -1,5 +1,15 @@
 # Release Notes
 
+## 4.0.2
+* Fix `SleetFeedReader` reading the symbols package index instead of `sleet.packageindex.json`
+* `IsListedAsync` returns true when the package registration does not contain a `listed` value
+* `DownloadNuspecAsync` now honors `DownloadMode`, creates the output folder, and sets the file time. The default mode, `FailIfExists`, throws if a valid nuspec already exists
+* `DownloadNupkgAsync` and `DownloadNuspecAsync` return a `FileInfo` with the current state of the downloaded file
+* Catalog entry downloads use the commit time as the file time, so `OverwriteIfNewer` only replaces files for newer commits and NuGetMirror no longer rewrites unchanged packages when the catalog is read again
+* Fix the `cacheTimeout` reader option, HTTP responses are now cached in `HttpCacheFolder` for the given time
+* Cancelling `GetEntriesAsync`, `ProcessEntriesUtility.RunAsync`, and other parallel operations throws `OperationCanceledException` instead of returning partial results
+* `CompareTo(null)` on catalog and package entries returns 1 so that null sorts first
+
 ## 4.0.1
 * Update NuGet.* packages to 7.9.0 to address advisory GHSA-g4vj-cjjj-v7hg
 

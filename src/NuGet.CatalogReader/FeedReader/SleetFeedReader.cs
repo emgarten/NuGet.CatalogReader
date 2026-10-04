@@ -81,7 +81,7 @@ namespace NuGet.CatalogReader
         }
 
         /// <summary>
-        /// Get all packages from the feed by reading sleet.package.index.json
+        /// Get all packages from the feed by reading sleet.packageindex.json
         /// </summary>
         public Task<List<PackageEntry>> GetPackagesAsync()
         {
@@ -89,7 +89,7 @@ namespace NuGet.CatalogReader
         }
 
         /// <summary>
-        /// Get all packages from the feed by reading sleet.package.index.json
+        /// Get all packages from the feed by reading sleet.packageindex.json
         /// </summary>
         public async Task<List<PackageEntry>> GetPackagesAsync(CancellationToken token)
         {

@@ -99,6 +99,14 @@ namespace NuGet.CatalogReader
         {
             return _getJson(Uri, token);
         }
+
+        /// <summary>
+        /// Downloaded files use the commit time so that <see cref="DownloadMode.OverwriteIfNewer"/> only replaces them for newer commits.
+        /// </summary>
+        internal override DateTimeOffset GetDownloadTimeStamp()
+        {
+            return CommitTimeStamp;
+        }
         
         /// <summary>
         /// Compare by date.
@@ -109,7 +117,7 @@ namespace NuGet.CatalogReader
         {
             if (other == null)
             {
-                return -1;
+                return 1;
             }
 
             return CommitTimeStamp.CompareTo(other.CommitTimeStamp);

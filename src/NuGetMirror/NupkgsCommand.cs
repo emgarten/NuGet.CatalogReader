@@ -469,14 +469,15 @@ namespace NuGetMirror
             {
                 var currentCreated = File.GetCreationTimeUtc(nupkgPath);
 
-                if (lastCreated < currentCreated)
+                // Replaced files use the commit time, which can be older than the existing file's creation time, for example in a copied mirror.
+                if (lastCreated != currentCreated)
                 {
                     result = nupkgFile;
                     log.LogInformation(nupkgFile.FullName);
                 }
                 else
                 {
-                    log.LogDebug($"Skipping. Current file is the same or newer. {lastCreated.ToString("o")} {currentCreated.ToString("o")}" + nupkgFile.FullName);
+                    log.LogDebug($"Skipping. Current file is unchanged. {lastCreated.ToString("o")} {currentCreated.ToString("o")}" + nupkgFile.FullName);
                 }
             }
             else
@@ -535,7 +536,8 @@ namespace NuGetMirror
                 var currentCreated = File.GetCreationTimeUtc(nupkgPath);
 
                 // Clean up nuspec and hash if the file changed
-                if (lastCreated < currentCreated || !File.Exists(hashPath) || !File.Exists(nuspecPath))
+                // Replaced files use the commit time, which can be older than the existing file's creation time, for example in a copied mirror.
+                if (lastCreated != currentCreated || !File.Exists(hashPath) || !File.Exists(nuspecPath))
                 {
                     result = nupkgFile;
                     log.LogInformation(nupkgFile.FullName);

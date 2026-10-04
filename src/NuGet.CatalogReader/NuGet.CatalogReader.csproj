@@ -14,5 +14,9 @@
     <PackageReference Include="NuGet.Protocol" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="NuGet.CatalogReader.Tests" />
+  </ItemGroup>
+
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
 </Project>

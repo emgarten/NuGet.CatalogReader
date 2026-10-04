@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
@@ -94,7 +95,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         public Task<FileInfo> DownloadNupkgAsync(string outputDirectory, DownloadMode mode, CancellationToken token)
         {
-            return DownloadNupkgAsync(outputDirectory, mode, DateTimeOffset.UtcNow, token);
+            return DownloadNupkgAsync(outputDirectory, mode, GetDownloadTimeStamp(), token);
         }
 
         /// <summary>
@@ -151,7 +152,7 @@ namespace NuGet.CatalogReader
         /// </summary>
         public Task<FileInfo> DownloadNuspecAsync(string outputDirectory, DownloadMode mode, CancellationToken token)
         {
-            return DownloadNuspecAsync(outputDirectory, mode, DateTimeOffset.UtcNow, token);
+            return DownloadNuspecAsync(outputDirectory, mode, GetDownloadTimeStamp(), token);
         }
 
         /// <summary>
@@ -173,9 +174,20 @@ namespace NuGet.CatalogReader
 
             var path = new FileInfo(Path.Combine(outputDirectory, $"{FileBaseName}.nuspec".ToLowerInvariant()));
 
-            File.WriteAllText(path.FullName, reader.Xml.ToString());
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(reader.Xml.ToString())))
+            {
+                await CatalogReaderUtility.DownloadFileAsync(stream, path, date, mode, CatalogReaderUtility.IsValidNuspec, token);
+            }
 
             return path;
+        }
+
+        /// <summary>
+        /// Time stamp to apply to downloaded files. <see cref="DownloadMode.OverwriteIfNewer"/> compares this with the existing file.
+        /// </summary>
+        internal virtual DateTimeOffset GetDownloadTimeStamp()
+        {
+            return DateTimeOffset.UtcNow;
         }
 
         /// <summary>
@@ -273,8 +285,10 @@ namespace NuGet.CatalogReader
         public async Task<bool> IsListedAsync(CancellationToken token)
         {
             var json = await GetPackageRegistrationUriAsync(token);
+            var listed = json["listed"];
 
-            return json.GetJObjectProperty<bool>("listed");
+            // Packages are listed unless the registration explicitly says otherwise.
+            return listed == null || listed.Type == JTokenType.Null || listed.Value<bool>();
         }
 
         /// <summary>
@@ -297,7 +311,7 @@ namespace NuGet.CatalogReader
         {
             if (other == null)
             {
-                return -1;
+                return 1;
             }
 
             var result = StringComparer.OrdinalIgnoreCase.Compare(Id, other.Id);

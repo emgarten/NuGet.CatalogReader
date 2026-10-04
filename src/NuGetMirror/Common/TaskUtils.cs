@@ -147,6 +147,13 @@ namespace NuGetMirror
                 await Task.WhenAll(threads);
             }
 
+            // Work is only left in the queue when the run was cancelled.
+            // Throw instead of returning default values for the skipped work.
+            if (!toRun.IsEmpty)
+            {
+                token.ThrowIfCancellationRequested();
+            }
+
             return results;
         }
 

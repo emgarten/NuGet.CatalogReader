@@ -198,7 +198,7 @@ When downloading packages, specify how to handle existing files with `DownloadMo
 | --- | --- |
 | `FailIfExists` | Throw if the file already exists |
 | `SkipIfExists` | Skip the download if the file already exists |
-| `OverwriteIfNewer` | Overwrite only if the new package is newer |
+| `OverwriteIfNewer` | Overwrite only if the existing file is older than the entry, catalog entries use their commit time and other entries use the current time |
 | `Force` | Always overwrite |
 
 ```csharp

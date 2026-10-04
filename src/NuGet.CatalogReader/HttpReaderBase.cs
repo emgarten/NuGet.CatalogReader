@@ -32,9 +32,9 @@ namespace NuGet.CatalogReader
         public int MaxThreads { get; set; } = 16;
 
         /// <summary>
-        /// Http cache location
+        /// Http cache location. This temp folder is deleted when the reader is disposed.
         /// </summary>
-        public string HttpCacheFolder => _cacheContext.RootTempFolder!;
+        public string HttpCacheFolder => _sourceCacheContext.GeneratedTempFolder;
 
         /// <summary>
         /// HttpReaderBase
@@ -104,30 +104,31 @@ namespace NuGet.CatalogReader
         /// </summary>
         /// <param name="indexUri">URI of the feed service index.</param>
         /// <param name="httpSource">Custom HttpSource.</param>
+        /// <param name="cacheContext">Custom cache context. Set NoCache to disable caching.</param>
+        /// <param name="cacheTimeout">Reuse HTTP responses newer than this. Responses are cached in <see cref="HttpCacheFolder"/>,
+        /// a custom <paramref name="httpSource"/> caches them in its own HttpCacheDirectory instead. Use TimeSpan.Zero to disable caching.</param>
         public HttpReaderBase(Uri indexUri, HttpSource? httpSource, SourceCacheContext? cacheContext, TimeSpan cacheTimeout, ILogger? log)
         {
             _indexUri = indexUri ?? throw new ArgumentNullException(nameof(indexUri));
             _log = log ?? NullLogger.Instance;
             _httpSource = httpSource;
+            _sourceCacheContext = cacheContext ?? new SourceCacheContext();
+            _cacheContext = CreateHttpCacheContext(_sourceCacheContext, cacheTimeout);
+        }
 
-            // Initialize the cache context used by HttpSource. If a SourceCacheContext
-            // was not provided, create one and respect the cache timeout parameter.
-            if (cacheContext == null)
+        private static HttpSourceCacheContext CreateHttpCacheContext(SourceCacheContext cacheContext, TimeSpan cacheTimeout)
+        {
+            if (cacheTimeout > TimeSpan.Zero && !cacheContext.NoCache)
             {
-                var sourceCacheContext = new SourceCacheContext()
-                {
-                    MaxAge = DateTimeOffset.UtcNow.Subtract(cacheTimeout),
-                };
+                // Clone to avoid changing the max age of the caller's context.
+                var context = cacheContext.Clone();
+                context.MaxAge = DateTimeOffset.UtcNow.Subtract(cacheTimeout);
 
-                _sourceCacheContext = sourceCacheContext;
-            }
-            else
-            {
-                _sourceCacheContext = cacheContext;
+                return HttpSourceCacheContext.Create(context, isFirstAttempt: true);
             }
 
-            // TODO: what should retry be?
-            _cacheContext = HttpSourceCacheContext.Create(_sourceCacheContext, 5);
+            // Always download, responses are written to temp files under HttpCacheFolder.
+            return HttpSourceCacheContext.Create(cacheContext, isFirstAttempt: false);
         }
 
         /// <summary>
@@ -215,7 +216,11 @@ namespace NuGet.CatalogReader
                 _httpSource = new HttpSource(
                     packageSource,
                     () => Task.FromResult((HttpHandlerResource)handlerResource),
-                    NullThrottle.Instance);
+                    NullThrottle.Instance)
+                {
+                    // Keep cached responses in the reader's folder so ClearCache and Dispose remove them.
+                    HttpCacheDirectory = HttpCacheFolder,
+                };
 
                 if (string.IsNullOrEmpty(UserAgent.UserAgentString)
                     || new UserAgentStringBuilder().Build()

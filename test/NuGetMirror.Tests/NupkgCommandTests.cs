@@ -251,6 +251,103 @@ namespace NuGetMirror.Tests
             }
         }
 
+        [Theory]
+        [InlineData("v2")]
+        [InlineData("v3")]
+        public async Task VerifyUnchangedPackagesAreNotUpdatedWhenTheCatalogIsReadAgain(string folderFormat)
+        {
+            // Arrange
+            using (var cache = new LocalCache())
+            using (var workingDir = new TestFolder())
+            {
+                var catalogLog = new TestLogger();
+                var log = new TestLogger();
+                var baseUri = Sleet.UriUtility.CreateUri("https://localhost:8080/testFeed/");
+                var feedFolder = Path.Combine(workingDir, "feed");
+                var nupkgsFolder = Path.Combine(workingDir, "nupkgs");
+                var nupkgsOutFolder = Path.Combine(workingDir, "nupkgsout");
+                var updatedFilesPath = Path.Combine(nupkgsOutFolder, "updatedFiles.txt");
+                Directory.CreateDirectory(feedFolder);
+                Directory.CreateDirectory(nupkgsFolder);
+                Directory.CreateDirectory(nupkgsOutFolder);
+
+                TestNupkg.Save(nupkgsFolder, new TestNupkg("a", "1.0.0"));
+
+                await CatalogReaderTestHelpers.CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, catalogLog);
+                var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
+
+                var args = new List<string> { "nupkgs", "-o", nupkgsOutFolder, "--folder-format", folderFormat, feedUri.AbsoluteUri, "--delay", "0" };
+                var exitCode = await NuGetMirror.Program.MainCore(args.ToArray(), CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri), log);
+                exitCode.Should().Be(0);
+                File.Exists(updatedFilesPath).Should().BeTrue();
+
+                // Act
+                // Ignore the cursor to process the same catalog entries again.
+                args.AddRange(new[] { "--start", "2000-01-01T00:00:00Z" });
+                exitCode = await NuGetMirror.Program.MainCore(args.ToArray(), CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri), log);
+
+                // Assert
+                exitCode.Should().Be(0);
+                File.Exists(updatedFilesPath).Should().BeFalse("the package did not change");
+            }
+        }
+
+        [Theory]
+        [InlineData("v2")]
+        [InlineData("v3")]
+        public async Task VerifyReplacedPackagesAreUpdatedWhenTheExistingFileWasCreatedAfterTheCommit(string folderFormat)
+        {
+            // Arrange
+            using (var cache = new LocalCache())
+            using (var workingDir = new TestFolder())
+            {
+                var catalogLog = new TestLogger();
+                var log = new TestLogger();
+                var baseUri = Sleet.UriUtility.CreateUri("https://localhost:8080/testFeed/");
+                var feedFolder = Path.Combine(workingDir, "feed");
+                var nupkgsFolder = Path.Combine(workingDir, "nupkgs");
+                var nupkgsOutFolder = Path.Combine(workingDir, "nupkgsout");
+                var updatedFilesPath = Path.Combine(nupkgsOutFolder, "updatedFiles.txt");
+                Directory.CreateDirectory(feedFolder);
+                Directory.CreateDirectory(nupkgsFolder);
+                Directory.CreateDirectory(nupkgsOutFolder);
+
+                TestNupkg.Save(nupkgsFolder, new TestNupkg("a", "1.0.0"));
+
+                await CatalogReaderTestHelpers.CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, catalogLog);
+                var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
+
+                var args = new List<string> { "nupkgs", "-o", nupkgsOutFolder, "--folder-format", folderFormat, feedUri.AbsoluteUri, "--delay", "0" };
+                var exitCode = await NuGetMirror.Program.MainCore(args.ToArray(), CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri), log);
+                exitCode.Should().Be(0);
+
+                // Simulate a copied mirror, the copy is created after the commit and the write time is older than the catalog entry.
+                var nupkgPath = Directory.GetFiles(nupkgsOutFolder, "*.nupkg", SearchOption.AllDirectories).Single();
+                var commitTime = File.GetLastWriteTimeUtc(nupkgPath);
+                File.SetCreationTimeUtc(nupkgPath, commitTime.AddHours(1));
+                File.SetLastWriteTimeUtc(nupkgPath, commitTime.AddHours(-1));
+
+                // v3 only, these should be rewritten when the nupkg is replaced.
+                var hashPaths = Directory.GetFiles(nupkgsOutFolder, "*.sha512", SearchOption.AllDirectories);
+                foreach (var hashPath in hashPaths)
+                {
+                    File.WriteAllText(hashPath, "stale");
+                }
+
+                // Act
+                // Ignore the cursor to process the same catalog entries again.
+                args.AddRange(new[] { "--start", "2000-01-01T00:00:00Z" });
+                exitCode = await NuGetMirror.Program.MainCore(args.ToArray(), CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri), log);
+
+                // Assert
+                exitCode.Should().Be(0);
+                File.GetLastWriteTimeUtc(nupkgPath).Should().Be(commitTime, "the package was replaced");
+                File.Exists(updatedFilesPath).Should().BeTrue("the package was replaced");
+                File.ReadAllLines(updatedFilesPath).Select(Path.GetFileName).Should().Equal("a.1.0.0.nupkg");
+                hashPaths.Select(File.ReadAllText).Should().NotContain("stale");
+            }
+        }
+
         [Fact]
         public async Task GivenLatestOnlyOptionVerifyDownloadsOnlyLatest()
         {

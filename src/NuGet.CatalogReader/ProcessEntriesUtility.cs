@@ -60,6 +60,7 @@ namespace NuGet.CatalogReader
         /// <typeparam name="T"></typeparam>
         /// <param name="apply">Transform or action to apply to each catalog entry.</param>
         /// <param name="maxThreads">Max threads</param>
+        /// <exception cref="OperationCanceledException">Thrown if the token is cancelled before all entries have been started.</exception>
         public static async Task<IReadOnlyList<T>> RunAsync<T>(Func<CatalogEntry, Task<T>> apply, int maxThreads, IEnumerable<CatalogEntry> entries, CancellationToken token)
         {
             var entriesArray = entries.ToArray();
@@ -68,6 +69,7 @@ namespace NuGet.CatalogReader
 
             var files = new List<T>(entriesArray.Length);
             var tasks = new List<Task<T>>(maxThreads);
+            var started = 0;
 
             // Download with throttling
             foreach (var entry in entriesArray)
@@ -79,7 +81,14 @@ namespace NuGet.CatalogReader
                     files.Add(await task);
                 }
 
+                if (token.IsCancellationRequested)
+                {
+                    // Stop starting new work, work in progress is awaited below.
+                    break;
+                }
+
                 tasks.Add(apply(entry));
+                started++;
             }
 
             // Wait for all downloads
@@ -88,6 +97,11 @@ namespace NuGet.CatalogReader
                 var task = await Task.WhenAny(tasks);
                 tasks.Remove(task);
                 files.Add(await task);
+            }
+
+            if (started < entriesArray.Length)
+            {
+                token.ThrowIfCancellationRequested();
             }
 
             return files;
