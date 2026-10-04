@@ -91,13 +91,14 @@ namespace NuGet.CatalogReader
 
         private static string GetHashKey(Uri uri)
         {
-            return uri.AbsolutePath.Replace("/", "_").Replace("\\", "_").Replace(":", "_");
+            // The key is used as the cache file name, it must be unique per uri and short enough for the file system.
+            return CachingUtility.ComputeHash(uri.AbsoluteUri);
         }
 
         private static readonly string[] RegistrationsBaseUrl = { "RegistrationsBaseUrl/Versioned", "RegistrationsBaseUrl/3.6.0", "RegistrationsBaseUrl/3.4.0", "RegistrationsBaseUrl/3.0.0-beta" };
         private static readonly string[] PackageBaseAddressUrl = { "PackageBaseAddress/3.0.0" };
         private static readonly string[] CatalogServiceUrl = { "Catalog/3.0.0", "http://schema.emgarten.com/sleet#Catalog/1.0.0" };
-        private static readonly string[] SleetPackageIndexUrl = { "http://schema.emgarten.com/sleet#SymbolsPackageIndex/1.0.0" };
+        private static readonly string[] SleetPackageIndexUrl = { "http://schema.emgarten.com/sleet#PackageIndex/1.0.0" };
 
         internal static Uri GetSleetPackageIndexUrl(this ServiceIndexResourceV3 serviceIndex)
         {

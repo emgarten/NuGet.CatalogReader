@@ -8,7 +8,8 @@ namespace NuGet.CatalogReader
         FailIfExists = 0,
 
         /// <summary>
-        /// Overwrite if the file is newer
+        /// Overwrite if the existing file is older than the entry.
+        /// Catalog entries use their commit time, other entries use the current time.
         /// </summary>
         OverwriteIfNewer = 1,
 

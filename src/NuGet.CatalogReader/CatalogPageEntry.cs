@@ -60,7 +60,7 @@ namespace NuGet.CatalogReader
         {
             if (other == null)
             {
-                return -1;
+                return 1;
             }
 
             return CommitTimeStamp.CompareTo(other.CommitTimeStamp);

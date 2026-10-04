@@ -285,6 +285,230 @@ namespace NuGet.CatalogReader.Tests
                 });
         }
 
+        [Fact]
+        public async Task VerifyDownloadNupkgUsesTheCommitTimeStamp()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    // Act
+                    var fileInfo = await entry.DownloadNupkgAsync(
+                        downloadFolder,
+                        DownloadMode.FailIfExists,
+                        TestContext.Current.CancellationToken);
+
+                    // Assert
+                    File.GetLastWriteTimeUtc(fileInfo.FullName).Should().Be(entry.CommitTimeStamp.UtcDateTime);
+                });
+        }
+
+        [Fact]
+        public async Task VerifyDownloadModeOverwriteIfNewer_ExistingHasTheCommitTimeStamp()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var nupkgPath = Path.Combine(downloadFolder, $"{entry.FileBaseName}.nupkg");
+                    var testNupkg = TestNupkg.Create("different", "1.0.0").Save(downloadFolder);
+                    File.Move(testNupkg.FullName, nupkgPath);
+                    File.SetLastWriteTimeUtc(nupkgPath, entry.CommitTimeStamp.UtcDateTime);
+
+                    // Act
+                    var fileInfo = await entry.DownloadNupkgAsync(
+                        downloadFolder,
+                        DownloadMode.OverwriteIfNewer,
+                        TestContext.Current.CancellationToken);
+
+                    // Assert
+                    using (var reader = new PackageArchiveReader(fileInfo.FullName))
+                    {
+                        reader.NuspecReader.GetId().Should().Be("different");
+                    }
+                });
+        }
+
+        [Fact]
+        public async Task VerifyDownloadNuspecCreatesTheOutputFolder()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var outputFolder = Path.Combine(downloadFolder, "nested", "folder");
+
+                    // Act
+                    var fileInfo = await entry.DownloadNuspecAsync(
+                        outputFolder,
+                        DownloadMode.FailIfExists,
+                        TestContext.Current.CancellationToken);
+
+                    // Assert
+                    fileInfo.FullName.Should().Be(Path.Combine(outputFolder, "a.1.0.0.nuspec"));
+                    new NuspecReader(fileInfo.FullName).GetId().Should().Be("a");
+                    File.GetLastWriteTimeUtc(fileInfo.FullName).Should().Be(entry.CommitTimeStamp.UtcDateTime);
+                });
+        }
+
+        [Theory]
+        [InlineData(DownloadMode.Force, 0, "a")]
+        [InlineData(DownloadMode.SkipIfExists, -48, "different")]
+        [InlineData(DownloadMode.OverwriteIfNewer, -48, "a")]
+        [InlineData(DownloadMode.OverwriteIfNewer, 0, "different")]
+        public async Task VerifyDownloadNuspecModesWhenTheFileExists(DownloadMode mode, int existingFileOffsetHours, string expectedId)
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var nuspecPath = Path.Combine(downloadFolder, "a.1.0.0.nuspec");
+                    WriteNuspec(nuspecPath, "different");
+                    File.SetLastWriteTimeUtc(nuspecPath, entry.CommitTimeStamp.UtcDateTime.AddHours(existingFileOffsetHours));
+
+                    // Act
+                    var fileInfo = await entry.DownloadNuspecAsync(
+                        downloadFolder,
+                        mode,
+                        TestContext.Current.CancellationToken);
+
+                    // Assert
+                    fileInfo.FullName.Should().Be(nuspecPath);
+                    new NuspecReader(nuspecPath).GetId().Should().Be(expectedId);
+                });
+        }
+
+        [Fact]
+        public async Task VerifyDownloadNuspecFailIfExists_Exists()
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var nuspecPath = Path.Combine(downloadFolder, "a.1.0.0.nuspec");
+                    WriteNuspec(nuspecPath, "different");
+
+                    // Act
+                    Func<Task> act = () => entry.DownloadNuspecAsync(
+                        downloadFolder,
+                        DownloadMode.FailIfExists,
+                        TestContext.Current.CancellationToken);
+
+                    // Assert
+                    await act.Should().ThrowAsync<InvalidOperationException>();
+                    new NuspecReader(nuspecPath).GetId().Should().Be("different");
+                });
+        }
+
+        [Theory]
+        [InlineData("not xml")]
+        [InlineData("<html />")]
+        [InlineData("<package><metadata><id>a</id></metadata></package>")]
+        [InlineData("<package><metadata><id></id><version>1.0.0</version></metadata></package>")]
+        public async Task VerifyDownloadNuspecReplacesAnInvalidFile(string content)
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var nuspecPath = Path.Combine(downloadFolder, "a.1.0.0.nuspec");
+                    File.WriteAllText(nuspecPath, content);
+
+                    // Act
+                    await entry.DownloadNuspecAsync(
+                        downloadFolder,
+                        DownloadMode.FailIfExists,
+                        TestContext.Current.CancellationToken);
+
+                    // Assert
+                    new NuspecReader(nuspecPath).GetId().Should().Be("a");
+                });
+        }
+
+        [Theory]
+        [InlineData(".nupkg", false)]
+        [InlineData(".nupkg", true)]
+        [InlineData(".nuspec", false)]
+        [InlineData(".nuspec", true)]
+        public async Task VerifyDownloadReturnsTheCurrentFileState(string extension, bool fileExists)
+        {
+            // Arrange
+            await VerifyDownloadMode(
+                async (downloadFolder, entry) =>
+                {
+                    var path = Path.Combine(downloadFolder, "a.1.0.0" + extension);
+
+                    if (fileExists)
+                    {
+                        if (extension == ".nupkg")
+                        {
+                            var testNupkg = TestNupkg.Create("different", "1.0.0").Save(downloadFolder);
+                            File.Move(testNupkg.FullName, path);
+                        }
+                        else
+                        {
+                            WriteNuspec(path, "different");
+                        }
+
+                        File.SetLastWriteTimeUtc(path, entry.CommitTimeStamp.UtcDateTime.AddHours(-48));
+                    }
+
+                    // Act
+                    var fileInfo = extension == ".nupkg"
+                        ? await entry.DownloadNupkgAsync(downloadFolder, DownloadMode.Force, TestContext.Current.CancellationToken)
+                        : await entry.DownloadNuspecAsync(downloadFolder, DownloadMode.Force, TestContext.Current.CancellationToken);
+
+                    // Assert
+                    fileInfo.FullName.Should().Be(path);
+                    fileInfo.Exists.Should().BeTrue();
+                    fileInfo.Length.Should().Be(new FileInfo(path).Length);
+                    fileInfo.LastWriteTimeUtc.Should().Be(entry.CommitTimeStamp.UtcDateTime);
+                });
+        }
+
+        [Fact]
+        public async Task VerifyGetEntriesAsyncThrowsWhenCancelled()
+        {
+            // Arrange
+            using (var cache = new LocalCache())
+            using (var cacheContext = new SourceCacheContext())
+            using (var workingDir = new TestFolder())
+            using (var cts = new CancellationTokenSource())
+            {
+                var log = new TestLogger();
+                var baseUri = Sleet.UriUtility.CreateUri("https://localhost:8080/testFeed/");
+                var feedFolder = Path.Combine(workingDir, "feed");
+                var nupkgsFolder = Path.Combine(workingDir, "nupkgs");
+                Directory.CreateDirectory(feedFolder);
+                Directory.CreateDirectory(nupkgsFolder);
+
+                TestNupkg.Save(nupkgsFolder, new TestNupkg("a", "1.0.0"));
+
+                await CatalogReaderTestHelpers.CreateCatalogAsync(workingDir, feedFolder, nupkgsFolder, baseUri, log);
+
+                var feedUri = Sleet.UriUtility.CreateUri(baseUri.AbsoluteUri + "index.json");
+                var httpSource = CatalogReaderTestHelpers.GetHttpSource(cache, feedFolder, baseUri);
+
+                using (var catalogReader = new CatalogReader(feedUri, httpSource, cacheContext, TimeSpan.FromMinutes(1), log))
+                {
+                    var pages = await catalogReader.GetPageEntriesAsync(TestContext.Current.CancellationToken);
+                    pages.Should().NotBeEmpty();
+                    cts.Cancel();
+
+                    // Act
+                    Func<Task> act = () => catalogReader.GetEntriesAsync(pages, cts.Token);
+
+                    // Assert
+                    await act.Should().ThrowAsync<OperationCanceledException>();
+                }
+            }
+        }
+
+        private static void WriteNuspec(string path, string id)
+        {
+            File.WriteAllText(path, $"<?xml version=\"1.0\" encoding=\"utf-8\"?><package><metadata><id>{id}</id><version>1.0.0</version></metadata></package>");
+        }
+
         private static async Task VerifyDownloadMode(
             Func<string, CatalogEntry, Task> actAndAssertAsync)
         {

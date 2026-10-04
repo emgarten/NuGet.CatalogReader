@@ -4,10 +4,12 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NuGet.Common;
 using NuGet.Packaging;
+using NuGet.Packaging.Core;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 
@@ -39,9 +41,14 @@ namespace NuGet.CatalogReader
             return handler;
         }
 
-        internal static async Task DownloadFileAsync(Stream stream, FileInfo outputFile, DateTimeOffset created, DownloadMode mode, CancellationToken token)
+        internal static Task DownloadFileAsync(Stream stream, FileInfo outputFile, DateTimeOffset created, DownloadMode mode, CancellationToken token)
         {
-            if (outputFile.Exists && IsValidNupkg(outputFile))
+            return DownloadFileAsync(stream, outputFile, created, mode, IsValidNupkg, token);
+        }
+
+        internal static async Task DownloadFileAsync(Stream stream, FileInfo outputFile, DateTimeOffset created, DownloadMode mode, Func<FileInfo, bool> isValid, CancellationToken token)
+        {
+            if (outputFile.Exists && isValid(outputFile))
             {
                 if (mode == DownloadMode.FailIfExists)
                 {
@@ -78,6 +85,9 @@ namespace NuGet.CatalogReader
 
                 File.SetCreationTimeUtc(outputFile.FullName, created.UtcDateTime);
                 File.SetLastWriteTimeUtc(outputFile.FullName, created.UtcDateTime);
+
+                // Callers return this FileInfo, update the state cached before the file was written.
+                outputFile.Refresh();
             }
             finally
             {
@@ -99,6 +109,23 @@ namespace NuGet.CatalogReader
                 }
             }
             catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or IOException)
+            {
+            }
+
+            return false;
+        }
+
+        internal static bool IsValidNuspec(FileInfo file)
+        {
+            try
+            {
+                using (var fileStream = file.OpenRead())
+                {
+                    var identity = new NuspecReader(fileStream).GetIdentity();
+                    return !string.IsNullOrEmpty(identity.Id) && identity.Version != null;
+                }
+            }
+            catch (Exception ex) when (ex is XmlException or IOException or PackagingException or ArgumentException)
             {
             }
 
